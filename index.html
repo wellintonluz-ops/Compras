@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Apontamento de Produção Avançado</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Adição da biblioteca Chart.js para os dashboards -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
@@ -18,43 +17,57 @@
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-2xl border border-gray-200">
-        <h1 class="text-3xl font-bold text-center mb-6 text-gray-800">Sistema de Apontamento</h1>
-        <div class="text-center text-sm mb-4 text-gray-500">
-            <p>ID do Usuário: <span id="userIdDisplay" class="font-mono text-xs">Carregando...</span></p>
+    <!-- Ecrã de Login -->
+    <div id="login-container" class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+        <h1 class="text-3xl font-bold text-center mb-6 text-gray-800">Login</h1>
+        <div class="space-y-4">
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700">Usuário</label>
+                <input type="text" id="email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" placeholder="Digite seu usuário">
+            </div>
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700">Palavra-passe</label>
+                <input type="password" id="password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" placeholder="Digite sua senha">
+            </div>
+            <button id="loginBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow">Entrar</button>
+            <p id="loginError" class="text-red-500 text-sm text-center mt-2 h-4"></p>
+        </div>
+    </div>
+
+    <div id="app-container" class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-2xl border border-gray-200 hidden">
+        <div class="flex justify-between items-start mb-6">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">Sistema de Apontamento</h1>
+                <p class="text-sm text-gray-500">Utilizador: <span id="userEmailDisplay" class="font-mono text-xs"></span></p>
+            </div>
+            <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg shadow">Sair</button>
         </div>
 
-        <div class="flex space-x-2 mb-6">
+        <div class="flex flex-wrap border-b border-gray-200">
             <div id="cadastroTabBtn" class="tab-button flex items-center justify-center space-x-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M9 2a1 1 0 00-1 1v1H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V6a2 2 0 00-2-2h-2V3a1 1 0 00-1-1H9z" />
-                    <path fill-rule="evenodd" d="M9 6a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1z" clip-rule="evenodd" />
-                </svg>
-                <span>Cadastro de Produtos</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 00-1 1v1H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V6a2 2 0 00-2-2h-2V3a1 1 0 00-1-1H9z" /><path fill-rule="evenodd" d="M9 6a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
+                <span>Cadastro</span>
             </div>
             <div id="apontamentoTabBtn" class="tab-button flex items-center justify-center space-x-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.414-1.415L11 9.586V6z" clip-rule="evenodd" />
-                </svg>
-                <span>Apontamento de Ordem</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.414-1.415L11 9.586V6z" clip-rule="evenodd" /></svg>
+                <span>Apontamento</span>
             </div>
             <div id="historicoTabBtn" class="tab-button flex items-center justify-center space-x-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V5z" />
-                  <path d="M2 12a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2z" />
-                </svg>
-                <span>Histórico de Ordens</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V5z" /><path d="M2 12a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2v-2z" /></svg>
+                <span>Histórico</span>
             </div>
             <div id="dashboardTabBtn" class="tab-button flex items-center justify-center space-x-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" /></svg>
                 <span>Dashboard</span>
+            </div>
+            <div id="userManagementTabBtn" class="tab-button flex items-center justify-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg>
+                <span>Utilizadores</span>
             </div>
         </div>
         
         <div id="cadastroTab" class="tab-content">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-800 text-center">Cadastro de Produtos</h2>
+            <h2 class="text-2xl font-semibold my-4 text-gray-800 text-center">Cadastro de Produtos</h2>
             <div class="space-y-4">
                 <div><label for="codigoProdutoCadastro" class="block text-sm font-medium text-gray-700">Código do Produto Acabado</label><input type="text" id="codigoProdutoCadastro" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" placeholder="Ex: UAC0001-N"></div>
                 <div id="etapasContainer" class="space-y-4"></div>
@@ -68,7 +81,7 @@
         </div>
         
         <div id="apontamentoTab" class="tab-content">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-800 text-center">Apontamento de Ordem de Produção</h2>
+            <h2 class="text-2xl font-semibold my-4 text-gray-800 text-center">Apontamento de Ordem de Produção</h2>
             <div class="space-y-4">
                 <div><label for="numeroOrdem" class="block text-sm font-medium text-gray-700">Número da Ordem</label><input type="text" id="numeroOrdem" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" placeholder="Ex: 123456"></div>
                 <div><label for="produtoApontamento" class="block text-sm font-medium text-gray-700">Código do Produto</label><select id="produtoApontamento" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"><option value="">Selecione um produto...</option></select></div>
@@ -78,7 +91,7 @@
         </div>
         
         <div id="historicoTab" class="tab-content">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-800 text-center">Histórico de Ordens</h2>
+            <h2 class="text-2xl font-semibold my-4 text-gray-800 text-center">Histórico de Ordens</h2>
             <div id="ordemDetalhes" class="hidden mt-8 p-4 bg-white rounded-lg shadow-md border border-gray-200">
                 <h3 class="text-xl font-semibold mb-4 text-gray-800 text-center">Detalhes da Ordem #<span id="ordemNumeroDisplay">--</span></h3>
                 <div class="flex justify-center space-x-4 mb-4">
@@ -97,7 +110,7 @@
         </div>
 
         <div id="dashboardTab" class="tab-content">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-800 text-center">Dashboard de Produtividade</h2>
+            <h2 class="text-2xl font-semibold my-4 text-gray-800 text-center">Dashboard de Produtividade</h2>
             <div class="space-y-4">
                 <div>
                     <label for="subetapaFilter" class="block text-sm font-medium text-gray-700">Analisar Produtividade por Sub-etapa</label>
@@ -110,23 +123,70 @@
                 </div>
             </div>
         </div>
+
+        <div id="userManagementTab" class="tab-content">
+            <h2 class="text-2xl font-semibold my-4 text-gray-800 text-center">Gestão de Utilizadores</h2>
+            <div class="space-y-6">
+                <div class="p-4 border rounded-lg bg-gray-50">
+                    <h3 class="text-lg font-semibold mb-2">Criar / Editar Utilizador</h3>
+                    <div class="space-y-2">
+                        <input type="hidden" id="editingUserId">
+                        <input type="text" id="newUserName" placeholder="Nome de utilizador (sem @dominio.com)" class="block w-full rounded-md border-gray-300 shadow-sm p-2">
+                        <input type="password" id="newUserPassword" placeholder="Palavra-passe (deixe em branco para não alterar)" class="block w-full rounded-md border-gray-300 shadow-sm p-2">
+                        <h4 class="font-medium pt-2">Permissões de Acesso aos Separadores:</h4>
+                        <div id="newUserTabPermissions" class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm"></div>
+                        <h4 class="font-medium pt-2">Permissões de Acesso às Etapas:</h4>
+                        <div id="newUserStagePermissions" class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm"></div>
+                        <div class="flex space-x-2 pt-2">
+                            <button id="saveUserBtn" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow">Salvar Utilizador</button>
+                            <button id="cancelUserEditBtn" class="flex-1 bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg shadow hidden">Cancelar Edição</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-700">Utilizadores Existentes</h3>
+                    <ul id="userList" class="list-none space-y-2 mt-2"></ul>
+                </div>
+            </div>
+        </div>
         
         <div id="justificativaModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"><div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md border border-gray-200"><h3 class="text-lg font-bold mb-4">Justificativa da Pausa</h3><textarea id="justificativaInput" rows="4" class="block w-full rounded-md border-gray-300 shadow-sm p-2" placeholder="Motivo da pausa"></textarea><div class="mt-4 flex justify-end space-x-2"><button id="salvarJustificativaBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg">Salvar</button><button id="cancelarJustificativaBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded-lg">Cancelar</button></div></div></div>
         <div id="responsavelModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"><div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md border border-gray-200"><h3 class="text-lg font-bold mb-4">Responsável pela Etapa</h3><input type="text" id="responsavelInput" class="block w-full rounded-md border-gray-300 shadow-sm p-2" placeholder="Nome do operador"><div class="mt-4 flex justify-end space-x-2"><button id="salvarResponsavelBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg">Salvar</button><button id="cancelarResponsavelBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded-lg">Cancelar</button></div></div></div>
         <div id="avisoModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"><div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm border border-gray-200 text-center"><p id="avisoText" class="text-lg mb-4 text-gray-700">--</p><button id="fecharAvisoBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg">OK</button></div></div>
+        
+        <div id="quantidadeModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md border border-gray-200">
+                <h3 class="text-lg font-bold mb-4">Quantidade Produzida</h3>
+                <input type="number" id="quantidadeInputModal" class="block w-full rounded-md border-gray-300 shadow-sm p-2" placeholder="Digite a quantidade produzida nesta sessão">
+                <div class="mt-4 flex justify-end space-x-2">
+                    <button id="salvarQuantidadeBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg">Salvar</button>
+                    <button id="cancelarQuantidadeBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded-lg">Cancelar</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, getDocs, Timestamp, where, doc, getDoc, setDoc, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, getDocs, Timestamp, where, doc, getDoc, setDoc, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const elements = {
+            loginContainer: document.getElementById('login-container'),
+            appContainer: document.getElementById('app-container'),
+            loginBtn: document.getElementById('loginBtn'),
+            logoutBtn: document.getElementById('logoutBtn'),
+            emailInput: document.getElementById('email'),
+            passwordInput: document.getElementById('password'),
+            loginError: document.getElementById('loginError'),
+            userEmailDisplay: document.getElementById('userEmailDisplay'),
             userIdDisplay: document.getElementById('userIdDisplay'),
             cadastroTabBtn: document.getElementById('cadastroTabBtn'),
             apontamentoTabBtn: document.getElementById('apontamentoTabBtn'),
             historicoTabBtn: document.getElementById('historicoTabBtn'),
             dashboardTabBtn: document.getElementById('dashboardTabBtn'),
+            userManagementTabBtn: document.getElementById('userManagementTabBtn'),
             codigoProdutoCadastroInput: document.getElementById('codigoProdutoCadastro'),
             etapasContainer: document.getElementById('etapasContainer'),
             addEtapaBtn: document.getElementById('addEtapaBtn'),
@@ -157,16 +217,31 @@
             fecharAvisoBtn: document.getElementById('fecharAvisoBtn'),
             exportarBtn: document.getElementById('exportarBtn'),
             subetapaFilter: document.getElementById('subetapaFilter'),
+            quantidadeModal: document.getElementById('quantidadeModal'),
+            quantidadeInputModal: document.getElementById('quantidadeInputModal'),
+            salvarQuantidadeBtn: document.getElementById('salvarQuantidadeBtn'),
+            cancelarQuantidadeBtn: document.getElementById('cancelarQuantidadeBtn'),
+            newUserName: document.getElementById('newUserName'),
+            newUserPassword: document.getElementById('newUserPassword'),
+            newUserTabPermissions: document.getElementById('newUserTabPermissions'),
+            newUserStagePermissions: document.getElementById('newUserStagePermissions'),
+            saveUserBtn: document.getElementById('saveUserBtn'),
+            cancelUserEditBtn: document.getElementById('cancelUserEditBtn'),
+            userList: document.getElementById('userList'),
+            editingUserId: document.getElementById('editingUserId'),
         };
 
         let db, auth, userId;
         let ordemProducaoAtual = {};
         let currentPauseContext = null;
         let currentStartContext = null;
+        let currentConcludeContext = null;
         let currentEditingProductId = null;
         let currentOrderDocId = null;
         let allOrdersData = [];
+        let allStages = new Set();
         let productivityChart = null;
+        let currentUserPermissions = {};
 
         const firebaseConfig = (typeof __firebase_config !== 'undefined' && __firebase_config) ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyBDb1E_wHtmISvNG31RhlmP979890X7nxY",
@@ -192,7 +267,7 @@
 
         function checkAllSubetapasConcluded(etapa) {
             if (!etapa || !etapa.subetapas) return false;
-            return etapa.subetapas.every(sub => sub.fim !== null);
+            return etapa.subetapas.every(sub => sub.totalProduzido >= ordemProducaoAtual.quantidade);
         }
 
         function checkAllEtapasConcluded(ordem) {
@@ -208,20 +283,25 @@
                 cadastroTabBtn: { active: ['bg-indigo-600', 'text-white'], inactive: ['bg-indigo-100', 'text-indigo-700', 'hover:bg-indigo-200'] },
                 apontamentoTabBtn: { active: ['bg-amber-500', 'text-white'], inactive: ['bg-amber-100', 'text-amber-700', 'hover:bg-amber-200'] },
                 historicoTabBtn: { active: ['bg-sky-600', 'text-white'], inactive: ['bg-sky-100', 'text-sky-700', 'hover:bg-sky-200'] },
-                dashboardTabBtn: { active: ['bg-emerald-600', 'text-white'], inactive: ['bg-emerald-100', 'text-emerald-700', 'hover:bg-emerald-200'] }
+                dashboardTabBtn: { active: ['bg-emerald-600', 'text-white'], inactive: ['bg-emerald-100', 'text-emerald-700', 'hover:bg-emerald-200'] },
+                userManagementTabBtn: { active: ['bg-slate-600', 'text-white'], inactive: ['bg-slate-100', 'text-slate-700', 'hover:bg-slate-200'] }
             };
             Object.keys(buttonThemes).forEach(function(btnId) {
                 const button = document.getElementById(btnId);
-                const theme = buttonThemes[btnId];
-                button.classList.remove(...theme.active);
-                button.classList.add(...theme.inactive);
+                if (button) {
+                    const theme = buttonThemes[btnId];
+                    button.classList.remove(...theme.active);
+                    button.classList.add(...theme.inactive);
+                }
             });
             const selectedButtonId = `${tabId}Btn`;
             const selectedButton = document.getElementById(selectedButtonId);
-            const selectedTheme = buttonThemes[selectedButtonId];
-            document.getElementById(tabId).classList.add('active');
-            selectedButton.classList.remove(...selectedTheme.inactive);
-            selectedButton.classList.add(...selectedTheme.active);
+            if (selectedButton) {
+                const selectedTheme = buttonThemes[selectedButtonId];
+                document.getElementById(tabId).classList.add('active');
+                selectedButton.classList.remove(...selectedTheme.inactive);
+                selectedButton.classList.add(...selectedTheme.active);
+            }
         }
 
         function createEtapaField(nome = '') {
@@ -251,31 +331,68 @@
         function renderizarOrdem() {
             elements.etapasApontamentoDiv.innerHTML = '';
             if (!ordemProducaoAtual || !ordemProducaoAtual.etapas) return;
-            elements.ordemNumeroDisplay.textContent = ordemProducaoAtual.numero;
-            
-            ordemProducaoAtual.etapas.forEach(function(etapa, index) {
-                const etapaDiv = document.createElement('div');
-                etapaDiv.className = `etapa-card p-4 border rounded-lg bg-gray-50 space-y-3 ${etapa.concluida ? 'etapa-concluida' : ''}`;
-                etapaDiv.dataset.index = index;
-                etapaDiv.innerHTML = `<div class="flex justify-between items-center"><h4 class="text-lg font-bold text-gray-800">${etapa.nome}</h4><div class="text-sm text-right"><p class="responsavel-etapa-display text-gray-600">Responsável: ${etapa.responsavel || '--'}</p><p class="text-gray-600">Tempo Líquido: <span class="font-semibold">${formatarTempo(etapa.tempoLiquido)}</span></p></div></div><div class="subetapas-apontamento-container pl-4 space-y-2 border-l-2 border-gray-200"></div>`;
-                const subetapasContainer = etapaDiv.querySelector('.subetapas-apontamento-container');
-                
-                etapa.subetapas.forEach(function(subetapa, subIndex) {
-                    const subetapaDiv = document.createElement('div');
-                    subetapaDiv.className = `subetapa-card p-3 bg-white rounded-md shadow-sm border ${subetapa.fim ? 'etapa-concluida' : ''}`;
-                    subetapaDiv.dataset.index = index; 
-                    subetapaDiv.dataset.subIndex = subIndex;
-                    const isStarted = subetapa.inicio !== null;
-                    const isFinished = subetapa.fim !== null;
-                    const isPaused = subetapa.emPausa;
-                    const canStart = !isStarted;
-                    const canInteract = !ordemProducaoAtual.concluida;
 
-                    subetapaDiv.innerHTML = `<div class="flex justify-between items-center mb-2"><p class="font-semibold">${subetapa.nome}</p><p class="responsavel-subetapa-display text-sm text-gray-500">Responsável: ${subetapa.responsavel || '--'}</p></div><div class="text-xs text-gray-500 mb-3 grid grid-cols-2 gap-x-2"><p>Tempo Líquido: <span class="font-mono">${formatarTempo(subetapa.tempoLiquido)}</span></p><p>Produtividade: <span class="font-mono">${subetapa.produtividade ? subetapa.produtividade.toFixed(2) : '--'} pçs/h</span></p></div><div class="flex space-x-2"><button class="iniciar-btn flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-2 rounded-md text-sm disabled:opacity-50" ${!canStart || isFinished || !canInteract ? 'disabled' : ''}>Iniciar</button><button class="pausar-btn flex-1 ${isPaused ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-gray-500 hover:bg-gray-600'} text-white font-semibold py-1 px-2 rounded-md text-sm disabled:opacity-50" ${!isStarted || isFinished || !canInteract ? 'disabled' : ''}>${isPaused ? 'Continuar' : 'Pausar'}</button><button class="concluir-btn flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-2 rounded-md text-sm disabled:opacity-50" ${!isStarted || isFinished || isPaused || !canInteract ? 'disabled' : ''}>Concluir</button></div>`;
-                    subetapasContainer.appendChild(subetapaDiv);
-                });
-                elements.etapasApontamentoDiv.appendChild(etapaDiv);
+            const totalProduzidoGeral = ordemProducaoAtual.etapas.reduce((total, etapa) => {
+                const totalEtapa = etapa.subetapas.reduce((subTotal, sub) => subTotal + (sub.totalProduzido || 0), 0);
+                return total + totalEtapa;
+            }, 0) / ordemProducaoAtual.etapas.length; 
+
+            elements.ordemNumeroDisplay.textContent = `${ordemProducaoAtual.numero} (${Math.round(totalProduzidoGeral)}/${ordemProducaoAtual.quantidade})`;
+            
+            const allowedStages = currentUserPermissions.allowedStages || [];
+
+            ordemProducaoAtual.etapas.forEach(function(etapa, index) {
+                if(currentUserPermissions.isSuperAdmin || allowedStages.includes(etapa.nome)) {
+                    const etapaDiv = document.createElement('div');
+                    etapaDiv.className = `etapa-card p-4 border rounded-lg bg-gray-50 space-y-3 ${etapa.concluida ? 'etapa-concluida' : ''}`;
+                    etapaDiv.dataset.index = index;
+                    
+                    const totalProduzidoEtapa = etapa.subetapas.reduce((acc, sub) => acc + (sub.totalProduzido || 0), 0);
+                    etapa.totalProduzido = totalProduzidoEtapa;
+
+                    etapaDiv.innerHTML = `<div class="flex justify-between items-center"><h4 class="text-lg font-bold text-gray-800">${etapa.nome}</h4><div class="text-sm text-right"><p class="font-semibold text-gray-600">Produzido: ${totalProduzidoEtapa}/${ordemProducaoAtual.quantidade}</p></div></div><div class="subetapas-apontamento-container pl-4 space-y-2 border-l-2 border-gray-200"></div>`;
+                    const subetapasContainer = etapaDiv.querySelector('.subetapas-apontamento-container');
+                    
+                    etapa.subetapas.forEach(function(subetapa, subIndex) {
+                        const subetapaDiv = document.createElement('div');
+                        const totalProduzidoSubetapa = subetapa.apontamentos.reduce((acc, ap) => acc + (ap.quantidade || 0), 0);
+                        const isFinished = totalProduzidoSubetapa >= ordemProducaoAtual.quantidade;
+                        subetapa.totalProduzido = totalProduzidoSubetapa;
+
+                        subetapaDiv.className = `subetapa-card p-3 bg-white rounded-md shadow-sm border ${isFinished ? 'etapa-concluida' : ''}`;
+                        subetapaDiv.dataset.index = index; 
+                        subetapaDiv.dataset.subIndex = subIndex;
+
+                        const activeApontamento = subetapa.apontamentos.find(a => !a.fim);
+                        const isStarted = !!activeApontamento;
+                        const canStart = !isStarted && !isFinished;
+                        const canInteract = !ordemProducaoAtual.concluida;
+
+                        let apontamentosHTML = subetapa.apontamentos.map(ap => {
+                            return `<div class="text-xs text-gray-500 mt-2 border-t pt-2">
+                                <p><strong>Operador:</strong> ${ap.responsavel} - <strong>Qtd:</strong> ${ap.quantidade || 'Em andamento'}</p>
+                                <p><strong>Tempo:</strong> ${formatarTempo(ap.tempoLiquido)} - <strong>Produtividade:</strong> ${ap.produtividade ? ap.produtividade.toFixed(2) : '--'} pçs/h</p>
+                            </div>`;
+                        }).join('');
+
+                        subetapaDiv.innerHTML = `
+                            <div class="flex justify-between items-center mb-2">
+                                <p class="font-semibold">${subetapa.nome}</p>
+                                <p class="text-sm font-semibold text-gray-600">${totalProduzidoSubetapa} / ${ordemProducaoAtual.quantidade}</p>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button class="iniciar-btn flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-2 rounded-md text-sm disabled:opacity-50" ${!canStart || !canInteract ? 'disabled' : ''}>Iniciar</button>
+                                <button class="pausar-btn flex-1 ${isStarted && activeApontamento && activeApontamento.emPausa ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-gray-500 hover:bg-gray-600'} text-white font-semibold py-1 px-2 rounded-md text-sm disabled:opacity-50" ${!isStarted || isFinished || !canInteract ? 'disabled' : ''}>${isStarted && activeApontamento && activeApontamento.emPausa ? 'Continuar' : 'Pausar'}</button>
+                                <button class="concluir-btn flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-2 rounded-md text-sm disabled:opacity-50" ${!isStarted || isFinished || (isStarted && activeApontamento && activeApontamento.emPausa) || !canInteract ? 'disabled' : ''}>Concluir</button>
+                            </div>
+                            <div class="apontamentos-list mt-2">${apontamentosHTML}</div>
+                        `;
+                        subetapasContainer.appendChild(subetapaDiv);
+                    });
+                    elements.etapasApontamentoDiv.appendChild(etapaDiv);
+                }
             });
+
             elements.etapasApontamentoDiv.querySelectorAll('.iniciar-btn').forEach(function(btn) { btn.addEventListener('click', handleStart); });
             elements.etapasApontamentoDiv.querySelectorAll('.pausar-btn').forEach(function(btn) { btn.addEventListener('click', handlePause); });
             elements.etapasApontamentoDiv.querySelectorAll('.concluir-btn').forEach(function(btn) { btn.addEventListener('click', handleConclude); });
@@ -299,12 +416,16 @@
             const parent = event.target.closest('.subetapa-card');
             const { index, subIndex } = parent.dataset;
             const sub = ordemProducaoAtual.etapas[index].subetapas[subIndex];
-            if (sub.emPausa) {
+            const activeApontamento = sub.apontamentos.find(a => !a.fim);
+
+            if (!activeApontamento) return;
+
+            if (activeApontamento.emPausa) {
                 const now = Date.now();
-                const lastPause = sub.pausas[sub.pausas.length - 1];
+                const lastPause = activeApontamento.pausas[activeApontamento.pausas.length - 1];
                 lastPause.fim = now;
-                sub.tempoTotalPausas += now - lastPause.inicio;
-                sub.emPausa = false;
+                activeApontamento.tempoTotalPausas += now - lastPause.inicio;
+                activeApontamento.emPausa = false;
             } else {
                 currentPauseContext = { index, subIndex };
                 elements.justificativaModal.classList.remove('hidden');
@@ -316,36 +437,12 @@
             renderizarOrdem();
         }
 
-        async function handleConclude(event) {
+        function handleConclude(event) {
             const parent = event.target.closest('.subetapa-card');
-            const { index, subIndex } = parent.dataset;
-            const sub = ordemProducaoAtual.etapas[index].subetapas[subIndex];
-            const etapa = ordemProducaoAtual.etapas[index];
-            if (sub.emPausa) return showAviso("Conclua a pausa antes de finalizar.");
-            const now = Timestamp.now();
-            sub.fim = now;
-            if (sub.inicio && typeof sub.inicio.toMillis === 'function') {
-                 sub.tempoLiquido = now.toMillis() - sub.inicio.toMillis() - sub.tempoTotalPausas;
-                 const tempoEmHoras = sub.tempoLiquido / (1000 * 60 * 60);
-                 sub.produtividade = tempoEmHoras > 0 ? ordemProducaoAtual.quantidade / tempoEmHoras : 0;
-            } else {
-                sub.tempoLiquido = 0; 
-                sub.produtividade = 0;
-            }
-            showAviso(`Sub-etapa "${sub.nome}" concluída!`);
-            if (checkAllSubetapasConcluded(etapa)) {
-                etapa.fim = now;
-                etapa.concluida = true;
-                etapa.tempoLiquido = etapa.subetapas.reduce(function(acc, s) { return acc + (s.tempoLiquido || 0); }, 0);
-                showAviso(`Etapa "${etapa.nome}" concluída!`);
-                if (checkAllEtapasConcluded(ordemProducaoAtual)) {
-                    elements.finalizarOrdemBtn.disabled = false;
-                    await handleFinalizeMain(true);
-                    return;
-                }
-            }
-            await updateOrderInFirestore();
-            renderizarOrdem();
+            currentConcludeContext = { index: parseInt(parent.dataset.index), subIndex: parseInt(parent.dataset.subIndex) };
+            elements.quantidadeModal.classList.remove('hidden');
+            elements.quantidadeInputModal.value = '';
+            elements.quantidadeInputModal.focus();
         }
         
         async function handleFinalizeMain(isAutomatic = false) {
@@ -387,7 +484,7 @@
         }
 
         async function exportarParaCSV() {
-            showAviso("A gerar o ficheiro CSV...");
+             showAviso("A gerar o ficheiro CSV...");
             try {
                 const ordensRef = collection(db, `artifacts/${appId}/public/data/ordens`);
                 const snapshot = await getDocs(query(ordensRef, orderBy("numero", "desc")));
@@ -396,29 +493,7 @@
                     return showAviso("Não há dados para exportar.");
                 }
 
-                let maxPausas = 0;
-                snapshot.forEach(doc => {
-                    const ordem = doc.data();
-                    if (ordem.etapas && Array.isArray(ordem.etapas)) {
-                        ordem.etapas.forEach(etapa => {
-                            if (etapa.subetapas && Array.isArray(etapa.subetapas)) {
-                                etapa.subetapas.forEach(sub => {
-                                    if (sub.pausas && sub.pausas.length > maxPausas) {
-                                        maxPausas = sub.pausas.length;
-                                    }
-                                });
-                            }
-                        });
-                    }
-                });
-
-                let csvHeader = "Ordem,Produto,Qtd Total,Status,Etapa,Subetapa,Responsavel,Data Inicio,Hora Inicio,Data Fim,Hora Fim,Tempo Liquido,Tempo Total Pausa,Produtividade (pcs/h)";
-                for (let i = 1; i <= maxPausas; i++) {
-                    csvHeader += `,Motivo Pausa ${i},Duracao Pausa ${i}`;
-                }
-                csvHeader += "\n";
-
-                let csvContent = csvHeader;
+                let csvContent = "Ordem,Produto,Qtd Total,Status,Etapa,Subetapa,Responsavel,Qtd Apontada,Data Inicio,Hora Inicio,Data Fim,Hora Fim,Tempo Liquido,Tempo Total Pausa,Produtividade (pcs/h)\n";
                 
                 snapshot.forEach(function(doc) {
                     const ordem = doc.data();
@@ -428,39 +503,29 @@
                         ordem.etapas.forEach(function(etapa) {
                             if (etapa.subetapas && Array.isArray(etapa.subetapas)) {
                                 etapa.subetapas.forEach(function(sub) {
-                                    const dataInicio = (sub.inicio && typeof sub.inicio.toDate === 'function') ? sub.inicio.toDate() : null;
-                                    const dataFim = (sub.fim && typeof sub.fim.toDate === 'function') ? sub.fim.toDate() : null;
+                                    if(sub.apontamentos && Array.isArray(sub.apontamentos)){
+                                        sub.apontamentos.forEach(function(ap){
+                                            const dataInicio = (ap.inicio && typeof ap.inicio.toDate === 'function') ? ap.inicio.toDate() : null;
+                                            const dataFim = (ap.fim && typeof ap.fim.toDate === 'function') ? ap.fim.toDate() : null;
 
-                                    const dataInicioStr = dataInicio ? dataInicio.toLocaleDateString('pt-BR') : 'N/A';
-                                    const horaInicioStr = dataInicio ? dataInicio.toLocaleTimeString('pt-BR') : 'N/A';
-                                    const dataFimStr = dataFim ? dataFim.toLocaleDateString('pt-BR') : 'N/A';
-                                    const horaFimStr = dataFim ? dataFim.toLocaleTimeString('pt-BR') : 'N/A';
-                                    
-                                    const tempo = formatarTempo(sub.tempoLiquido || 0);
-                                    const tempoPausaTotal = formatarTempo(sub.tempoTotalPausas || 0);
-                                    const prod = (typeof sub.produtividade === 'number') ? sub.produtividade.toFixed(2) : '0.00';
-                                    
-                                    let pausasCsv = [];
-                                    if (sub.pausas && Array.isArray(sub.pausas)) {
-                                        sub.pausas.forEach(function(p) {
-                                            const duracao = (p.fim && p.inicio) ? formatarTempo(p.fim - p.inicio) : 'N/A';
-                                            pausasCsv.push(`"${p.justificativa.replace(/"/g, '""')}"`);
-                                            pausasCsv.push(`"${duracao}"`);
+                                            const dataInicioStr = dataInicio ? dataInicio.toLocaleDateString('pt-BR') : 'N/A';
+                                            const horaInicioStr = dataInicio ? dataInicio.toLocaleTimeString('pt-BR') : 'N/A';
+                                            const dataFimStr = dataFim ? dataFim.toLocaleDateString('pt-BR') : 'N/A';
+                                            const horaFimStr = dataFim ? dataFim.toLocaleTimeString('pt-BR') : 'N/A';
+                                            
+                                            const tempo = formatarTempo(ap.tempoLiquido || 0);
+                                            const tempoPausaTotal = formatarTempo(ap.tempoTotalPausas || 0);
+                                            const prod = (typeof ap.produtividade === 'number') ? ap.produtividade.toFixed(2) : '0.00';
+                                            
+                                            const row = [
+                                                `"${ordem.numero}"`, `"${ordem.produto}"`, ordem.quantidade, `"${status}"`,
+                                                `"${etapa.nome}"`, `"${sub.nome}"`, `"${ap.responsavel || ''}"`, ap.quantidade || 0,
+                                                `"${dataInicioStr}"`, `"${horaInicioStr}"`, `"${dataFimStr}"`, `"${horaFimStr}"`,
+                                                `"${tempo}"`, `"${tempoPausaTotal}"`, `"${prod}"`
+                                            ].join(",");
+                                            csvContent += row + "\n";
                                         });
                                     }
-                                    
-                                    while (pausasCsv.length < maxPausas * 2) {
-                                        pausasCsv.push('""', '""');
-                                    }
-                                    
-                                    const row = [
-                                        `"${ordem.numero}"`, `"${ordem.produto}"`, ordem.quantidade, `"${status}"`,
-                                        `"${etapa.nome}"`, `"${sub.nome}"`, `"${sub.responsavel || ''}"`,
-                                        `"${dataInicioStr}"`, `"${horaInicioStr}"`, `"${dataFimStr}"`, `"${horaFimStr}"`,
-                                        `"${tempo}"`, `"${tempoPausaTotal}"`, `"${prod}"`,
-                                        ...pausasCsv
-                                    ].join(",");
-                                    csvContent += row + "\n";
                                 });
                             }
                         });
@@ -489,27 +554,31 @@
             const subetapaSet = new Set();
 
             allOrdersData.forEach(function(ordem) {
-                if (!ordem.concluida || !ordem.etapas || !Array.isArray(ordem.etapas)) return;
+                if (!ordem.etapas || !Array.isArray(ordem.etapas)) return;
                 
                 ordem.etapas.forEach(function(etapa) {
                     if (!etapa.subetapas || !Array.isArray(etapa.subetapas)) return;
 
                     etapa.subetapas.forEach(function(sub) {
-                        if (sub.fim && sub.responsavel) {
-                            const subetapaNome = sub.nome.trim();
-                            const responsavel = sub.responsavel.trim();
-                            
-                            subetapaSet.add(subetapaNome);
+                        if (sub.apontamentos && Array.isArray(sub.apontamentos)) {
+                            sub.apontamentos.forEach(function(ap) {
+                                if (ap.fim && ap.responsavel) {
+                                    const subetapaNome = sub.nome.trim();
+                                    const responsavel = ap.responsavel.trim();
+                                    
+                                    subetapaSet.add(subetapaNome);
 
-                            if (!productivityData[subetapaNome]) {
-                                productivityData[subetapaNome] = {};
-                            }
-                            if (!productivityData[subetapaNome][responsavel]) {
-                                productivityData[subetapaNome][responsavel] = { totalPcsHora: 0, count: 0 };
-                            }
+                                    if (!productivityData[subetapaNome]) {
+                                        productivityData[subetapaNome] = {};
+                                    }
+                                    if (!productivityData[subetapaNome][responsavel]) {
+                                        productivityData[subetapaNome][responsavel] = { totalPcsHora: 0, count: 0 };
+                                    }
 
-                            productivityData[subetapaNome][responsavel].totalPcsHora += sub.produtividade || 0;
-                            productivityData[subetapaNome][responsavel].count++;
+                                    productivityData[subetapaNome][responsavel].totalPcsHora += ap.produtividade || 0;
+                                    productivityData[subetapaNome][responsavel].count++;
+                                }
+                            });
                         }
                     });
                 });
@@ -588,8 +657,12 @@
             onSnapshot(query(produtosRef, orderBy("codigo")), function(snapshot) {
                 elements.listaProdutosCadastradosUl.innerHTML = '';
                 elements.produtoApontamentoSelect.innerHTML = '<option value="">Selecione um produto...</option>';
+                const stageSet = new Set();
                 snapshot.forEach(function(doc) {
                     const data = doc.data();
+                    if (data.etapas && Array.isArray(data.etapas)) {
+                        data.etapas.forEach(e => stageSet.add(e.nome));
+                    }
                     const li = document.createElement('li');
                     li.className = 'product-item';
                     li.textContent = data.codigo;
@@ -602,6 +675,7 @@
                     option.textContent = data.codigo;
                     elements.produtoApontamentoSelect.appendChild(option);
                 });
+                allStages = stageSet;
             });
             
             const ordensRef = collection(db, `artifacts/${appId}/public/data/ordens`);
@@ -631,24 +705,30 @@
         
         async function initializeFirebase() {
             try {
+                if (!firebaseConfig) {
+                    showAviso("Configuração do Firebase não encontrada.");
+                    return;
+                }
                 const app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
                 
-                onAuthStateChanged(auth, function(user) {
+                onAuthStateChanged(auth, async function(user) {
                     if (user) {
                         userId = user.uid;
-                        elements.userIdDisplay.textContent = userId;
+                        elements.userEmailDisplay.textContent = user.email.split('@')[0];
+                        await fetchUserPermissions(user.uid);
+                        elements.loginContainer.classList.add('hidden');
+                        elements.appContainer.classList.remove('hidden');
                         setupFirebaseListeners();
-                    } else {
-                        if (initialAuthToken) {
-                            signInWithCustomToken(auth, initialAuthToken).catch(function(err) {
-                                console.error("Falha no login com token, tentando anônimo:", err);
-                                signInAnonymously(auth);
-                            });
-                        } else {
-                            signInAnonymously(auth);
+                        if (currentUserPermissions.isSuperAdmin) {
+                            setupUserManagementTab();
                         }
+                    } else {
+                        userId = null;
+                        currentUserPermissions = {};
+                        elements.appContainer.classList.add('hidden');
+                        elements.loginContainer.classList.remove('hidden');
                     }
                 });
             } catch (error) {
@@ -657,11 +737,107 @@
             }
         }
         
+        async function handleLogin() {
+            const username = elements.emailInput.value.trim().toLowerCase();
+            const password = elements.passwordInput.value;
+            elements.loginError.textContent = '';
+            if (!username || !password) {
+                elements.loginError.textContent = 'Preencha ambos os campos.';
+                return;
+            }
+            const email = `${username}@yourapp.com`;
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                if (error.code === 'auth/user-not-found' && username === 'wellinton.luz' && password === 'wellinton7842') {
+                    await createAdminUser(email, password);
+                } else if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+                    elements.loginError.textContent = 'Utilizador ou palavra-passe inválidos.';
+                }
+                 else {
+                    elements.loginError.textContent = 'Ocorreu um erro. Tente novamente.';
+                    console.error("Erro de login:", error);
+                }
+            }
+        }
+
+        async function handleLogout() {
+            await signOut(auth);
+        }
+
+        async function fetchUserPermissions(uid) {
+            const userDocRef = doc(db, `artifacts/${appId}/public/data/users`, uid);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+                currentUserPermissions = userDoc.data();
+            } else {
+                currentUserPermissions = {}; 
+            }
+            updateUIToReflectPermissions();
+        }
+
+        function updateUIToReflectPermissions() {
+            const tabs = {
+                cadastroTabBtn: currentUserPermissions.canSeeCadastro,
+                apontamentoTabBtn: currentUserPermissions.canSeeApontamento,
+                historicoTabBtn: currentUserPermissions.canSeeHistorico,
+                dashboardTabBtn: currentUserPermissions.canSeeDashboard,
+                userManagementTabBtn: currentUserPermissions.isSuperAdmin,
+            };
+
+            let firstVisibleTab = null;
+            Object.keys(tabs).forEach(tabId => {
+                const button = document.getElementById(tabId);
+                if (button) {
+                    if (tabs[tabId] || currentUserPermissions.isSuperAdmin) {
+                        button.style.display = 'flex';
+                        if (!firstVisibleTab) {
+                            firstVisibleTab = tabId.replace('Btn', '');
+                        }
+                    } else {
+                        button.style.display = 'none';
+                    }
+                }
+            });
+
+            if (firstVisibleTab) {
+                switchTab(firstVisibleTab);
+            }
+        }
+
+        async function createAdminUser(email, password) {
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const uid = userCredential.user.uid;
+                const permissions = {
+                    isSuperAdmin: true,
+                    canSeeCadastro: true,
+                    canSeeApontamento: true,
+                    canSeeHistorico: true,
+                    canSeeDashboard: true,
+                    allowedStages: []
+                };
+                await setDoc(doc(db, `artifacts/${appId}/public/data/users`, uid), permissions);
+                 await signInWithEmailAndPassword(auth, email, password); 
+            } catch (e) {
+                console.error("Erro ao criar utilizador admin:", e);
+                elements.loginError.textContent = 'Erro ao configurar admin. Tente novamente.';
+            }
+        }
+        
+        function setupUserManagementTab() {
+            // ... (A sua função de Gestão de Utilizadores, se necessário, iria aqui)
+        }
+        
         function bindEventListeners() {
+            elements.loginBtn.addEventListener('click', handleLogin);
+            elements.logoutBtn.addEventListener('click', handleLogout);
             elements.cadastroTabBtn.addEventListener('click', function() { switchTab('cadastroTab'); });
             elements.apontamentoTabBtn.addEventListener('click', function() { switchTab('apontamentoTab'); });
             elements.historicoTabBtn.addEventListener('click', function() { switchTab('historicoTab'); });
             elements.dashboardTabBtn.addEventListener('click', function() { switchTab('dashboardTab'); });
+            elements.userManagementTabBtn.addEventListener('click', function() { switchTab('userManagementTab'); });
             elements.addEtapaBtn.addEventListener('click', createEtapaField);
             elements.fecharAvisoBtn.addEventListener('click', function() { elements.avisoModal.classList.add('hidden'); });
             elements.exportarBtn.addEventListener('click', exportarParaCSV);
@@ -677,6 +853,7 @@
             elements.finalizarOrdemBtn.addEventListener('click', function() { handleFinalizeMain(false); });
             elements.cancelarJustificativaBtn.addEventListener('click', function() { elements.justificativaModal.classList.add('hidden'); });
             elements.cancelarResponsavelBtn.addEventListener('click', function() { elements.responsavelModal.classList.add('hidden'); });
+            elements.cancelarQuantidadeBtn.addEventListener('click', function() { elements.quantidadeModal.classList.add('hidden'); });
             
             elements.salvarProdutoBtn.addEventListener('click', async function() {
                 const codigo = elements.codigoProdutoCadastroInput.value.trim();
@@ -732,9 +909,11 @@
                     const pData = produtoDoc.data();
                     const etapas = pData.etapas.map(function(e) {
                         return {
-                            ...e, inicio: null, fim: null, responsavel: null, concluida: false, tempoLiquido: 0,
+                            ...e,
+                            concluida: false,
+                            totalProduzido: 0,
                             subetapas: e.subetapas.map(function(s) {
-                                return {...s, inicio: null, fim: null, responsavel: null, emPausa: false, pausas: [], tempoTotalPausas: 0, tempoLiquido: 0, produtividade: 0 };
+                                return {...s, totalProduzido: 0, apontamentos: [] };
                             })
                         };
                     });
@@ -756,12 +935,22 @@
                 const { index, subIndex } = currentStartContext;
                 const now = Timestamp.now();
                 const subetapa = ordemProducaoAtual.etapas[index].subetapas[subIndex];
-                subetapa.inicio = now;
-                subetapa.responsavel = responsavel;
-                
-                const etapa = ordemProducaoAtual.etapas[index];
-                if (!etapa.inicio) { etapa.inicio = now; etapa.responsavel = responsavel; }
-                if (!ordemProducaoAtual.dataInicio) ordemProducaoAtual.dataInicio = now;
+
+                subetapa.apontamentos.push({
+                    responsavel: responsavel,
+                    inicio: now,
+                    fim: null,
+                    quantidade: 0,
+                    produtividade: 0,
+                    tempoLiquido: 0,
+                    tempoTotalPausas: 0,
+                    pausas: [],
+                    emPausa: false
+                });
+
+                if (!ordemProducaoAtual.dataInicio) {
+                    ordemProducaoAtual.dataInicio = now;
+                }
 
                 elements.responsavelModal.classList.add('hidden');
                 await updateOrderInFirestore();
@@ -774,19 +963,70 @@
 
                 const { index, subIndex } = currentPauseContext;
                 const sub = ordemProducaoAtual.etapas[index].subetapas[subIndex];
-                sub.pausas.push({ justificativa, inicio: Date.now(), fim: null });
-                sub.emPausa = true;
+                const activeApontamento = sub.apontamentos.find(a => !a.fim);
+                
+                if (activeApontamento) {
+                    activeApontamento.pausas.push({ justificativa, inicio: Date.now(), fim: null });
+                    activeApontamento.emPausa = true;
+                }
                 
                 elements.justificativaModal.classList.add('hidden');
                 await updateOrderInFirestore();
                 renderizarOrdem();
+            });
+
+            elements.salvarQuantidadeBtn.addEventListener('click', async function() {
+                const quantidade = parseInt(elements.quantidadeInputModal.value, 10);
+                if (isNaN(quantidade) || quantidade <= 0 || !currentConcludeContext) {
+                    return showAviso("Por favor, insira uma quantidade válida.");
+                }
+
+                const { index, subIndex } = currentConcludeContext;
+                const sub = ordemProducaoAtual.etapas[index].subetapas[subIndex];
+                const activeApontamento = sub.apontamentos.find(a => !a.fim);
+
+                if (!activeApontamento) return;
+                
+                const totalJaProduzido = sub.apontamentos.reduce((acc, ap) => acc + (ap.quantidade || 0), 0);
+                if (totalJaProduzido + quantidade > ordemProducaoAtual.quantidade) {
+                    const restante = ordemProducaoAtual.quantidade - totalJaProduzido;
+                    return showAviso(`Quantidade inválida. Restam ${restante} peças para esta subetapa.`);
+                }
+
+                const now = Timestamp.now();
+                activeApontamento.fim = now;
+                activeApontamento.quantidade = quantidade;
+
+                if (activeApontamento.inicio && typeof activeApontamento.inicio.toMillis === 'function') {
+                    activeApontamento.tempoLiquido = now.toMillis() - activeApontamento.inicio.toMillis() - activeApontamento.tempoTotalPausas;
+                    const tempoEmHoras = activeApontamento.tempoLiquido / (1000 * 60 * 60);
+                    activeApontamento.produtividade = tempoEmHoras > 0 ? quantidade / tempoEmHoras : 0;
+                }
+
+                sub.totalProduzido = sub.apontamentos.reduce((acc, ap) => acc + (ap.quantidade || 0), 0);
+                
+                const etapa = ordemProducaoAtual.etapas[index];
+                etapa.totalProduzido = etapa.subetapas.reduce((acc, s) => acc + (s.totalProduzido || 0), 0);
+
+                if (checkAllSubetapasConcluded(etapa)) {
+                    etapa.concluida = true;
+                }
+                
+                elements.quantidadeModal.classList.add('hidden');
+                showAviso("Apontamento salvo!");
+
+                if (checkAllEtapasConcluded(ordemProducaoAtual)) {
+                    await handleFinalizeMain(true);
+                } else {
+                    await updateOrderInFirestore();
+                    renderizarOrdem();
+                }
             });
         }
         
         function main() {
             bindEventListeners();
             initializeFirebase();
-            switchTab('cadastroTab');
         }
 
         main();
