@@ -307,7 +307,14 @@
         let unsubscribeProducts = null, unsubscribeOrders = null, unsubscribeUsers = null, unsubscribeCurrentOrder = null, unsubscribeEtapas = null;
         let eventListenersBound = false;
 
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyBDb1E_wHtmISvNG31RhlmP979890X7nxY",
+            authDomain: "apontamentoproducao-f141e.firebaseapp.com",
+            projectId: "apontamentoproducao-f141e",
+            storageBucket: "apontamentoproducao-f141e.appspot.com",
+            messagingSenderId: "516590802933",
+            appId: "1:516590802933:web:756d1e76d981e51604b2bc"
+        };
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         
