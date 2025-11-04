@@ -176,17 +176,29 @@
 
             <!-- Charts -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="bg-white p-4 rounded-lg border h-96">
-                    <h3 class="font-semibold text-center mb-2">Produtividade Média por Operador (pçs/h)</h3>
-                    <canvas id="productivityChart"></canvas>
+                <div class="bg-white p-4 rounded-lg border">
+                    <h3 class="font-semibold text-center mb-4">Produtividade Média por Operador (pçs/h)</h3>
+                    <div style="position: relative; height: 300px;">
+                        <canvas id="productivityChart"></canvas>
+                    </div>
                 </div>
-                <div class="bg-white p-4 rounded-lg border h-96">
-                     <h3 class="font-semibold text-center mb-2">Horas por Sub-etapa no Período</h3>
-                    <canvas id="timeSpentChart"></canvas>
+                <div class="bg-white p-4 rounded-lg border">
+                     <h3 class="font-semibold text-center mb-4">Horas por Sub-etapa no Período</h3>
+                     <div style="position: relative; height: 300px;">
+                        <canvas id="timeSpentChart"></canvas>
+                     </div>
                 </div>
-                <div class="bg-white p-4 rounded-lg border h-96 lg:col-span-2">
-                     <h3 class="font-semibold text-center mb-2">Peças Produzidas por Dia</h3>
-                    <canvas id="dailyProductionChart"></canvas>
+                <div class="bg-white p-4 rounded-lg border">
+                     <h3 class="font-semibold text-center mb-4">Refugos por Sub-etapa</h3>
+                     <div style="position: relative; height: 300px;">
+                        <canvas id="refugoChart"></canvas>
+                     </div>
+                </div>
+                <div class="bg-white p-4 rounded-lg border">
+                     <h3 class="font-semibold text-center mb-4">Peças Produzidas por Dia</h3>
+                     <div style="position: relative; height: 300px;">
+                        <canvas id="dailyProductionChart"></canvas>
+                     </div>
                 </div>
             </div>
         </div>
@@ -237,6 +249,23 @@
     <div id="responsavelModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"><div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md border border-gray-200"><h3 class="text-lg font-bold mb-4">Responsável pela Etapa</h3><input type="text" id="responsavelInput" class="block w-full rounded-md border-gray-300 shadow-sm p-2" placeholder="Nome do operador"><div class="mt-4 flex justify-end space-x-2"><button id="salvarResponsavelBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg">Salvar</button><button id="cancelarResponsavelBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded-lg">Cancelar</button></div></div></div>
     <div id="avisoModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"><div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm border border-gray-200 text-center"><p id="avisoText" class="text-lg mb-4 text-gray-700">--</p><button id="fecharAvisoBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg">OK</button></div></div>
     
+    <!-- Modal de Refugo (informativo) -->
+    <div id="refugoModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md border border-gray-200">
+            <h3 class="text-lg font-bold mb-4">Registrar Refugo</h3>
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-700">Motivo</label>
+                <input type="text" id="motivoRefugoInput" class="block w-full rounded-md border-gray-300 shadow-sm p-2" placeholder="Descreva o motivo do refugo">
+                <label class="block text-sm font-medium text-gray-700">Quantidade do Refugo</label>
+                <input type="number" id="quantidadeRefugoInput" class="block w-full rounded-md border-gray-300 shadow-sm p-2" placeholder="Ex: 2">
+            </div>
+            <div class="mt-4 flex justify-end space-x-2">
+                <button id="salvarRefugoBtn" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg">Registrar</button>
+                <button id="cancelarRefugoBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded-lg">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <div id="quantidadeModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
         <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md border border-gray-200">
             <h3 class="text-lg font-bold mb-4">Quantidade Produzida</h3>
@@ -297,6 +326,12 @@
             justificativaInput: document.getElementById('justificativaInput'),
             salvarJustificativaBtn: document.getElementById('salvarJustificativaBtn'),
             cancelarJustificativaBtn: document.getElementById('cancelarJustificativaBtn'),
+            // Refugo modal elements
+            refugoModal: document.getElementById('refugoModal'),
+            motivoRefugoInput: document.getElementById('motivoRefugoInput'),
+            quantidadeRefugoInput: document.getElementById('quantidadeRefugoInput'),
+            salvarRefugoBtn: document.getElementById('salvarRefugoBtn'),
+            cancelarRefugoBtn: document.getElementById('cancelarRefugoBtn'),
             responsavelModal: document.getElementById('responsavelModal'),
             responsavelInput: document.getElementById('responsavelInput'),
             salvarResponsavelBtn: document.getElementById('salvarResponsavelBtn'),
@@ -327,13 +362,14 @@
         let currentPauseContext = null;
         let currentStartContext = null;
         let currentConcludeContext = null;
+        let currentRefugoContext = null;
         let currentEditingProductId = null;
         let currentEditingUserId = null;
         let currentEditingEtapaId = null;
         let currentOrderDocId = null;
         let allOrdersData = [];
         let globalEtapasData = [];
-        let productivityChart, timeSpentChart, dailyProductionChart;
+        let productivityChart, timeSpentChart, dailyProductionChart, refugoChart;
         let allEtapas = new Set();
         let unsubscribeProducts = null, unsubscribeOrders = null, unsubscribeUsers = null, unsubscribeCurrentOrder = null, unsubscribeEtapas = null, unsubscribeMotivosPausa = null;
         let eventListenersBound = false;
@@ -403,6 +439,15 @@
                 selectedButton.classList.add(...theme.active);
 
                 if (tabId === 'dashboardTab') {
+                    // Inicializar filtros de data se estiverem vazios
+                    if (!elements.startDateFilter.value && !elements.endDateFilter.value) {
+                        const endDate = new Date();
+                        const startDate = new Date();
+                        startDate.setDate(startDate.getDate() - 30);
+                        
+                        elements.endDateFilter.value = endDate.toISOString().split('T')[0];
+                        elements.startDateFilter.value = startDate.toISOString().split('T')[0];
+                    }
                     processAndDisplayDashboardData();
                 }
             }
@@ -455,14 +500,24 @@
                         const percProdutividade = (meta > 0 && ap.produtividade) ? (ap.produtividade / meta) * 100 : 0;
                         const colorClass = percProdutividade >= 100 ? 'text-green-600' : 'text-red-600';
 
+                        // Monta HTML para refugos, se existirem
+                        let refugosHTML = '';
+                        if (ap.refugos && Array.isArray(ap.refugos) && ap.refugos.length > 0) {
+                            refugosHTML = ap.refugos.map(r => {
+                                const dataStr = (r.data && r.data.toDate) ? r.data.toDate().toLocaleString('pt-BR') : (r.data ? (new Date(r.data)).toLocaleString('pt-BR') : '');
+                                return `<div class="text-xs text-red-600 mt-1"><strong>Refugo:</strong> ${r.quantidade || 0} - ${r.motivo || ''} <span class="text-gray-500">(${dataStr})</span></div>`;
+                            }).join('');
+                        }
+
                         return `<div class="text-xs text-gray-500 mt-2 border-t pt-2">
                             <p><strong>Operador:</strong> ${ap.responsavel} - <strong>Qtd:</strong> ${ap.quantidade || 'Em andamento'}</p>
                             <p><strong>Tempo:</strong> ${formatarTempo(ap.tempoLiquido)} - <strong>Produtividade:</strong> ${ap.produtividade ? ap.produtividade.toFixed(2) : '--'} pçs/h 
                             <span class="${colorClass}">(${percProdutividade.toFixed(1)}%)</span></p>
+                            ${refugosHTML}
                         </div>`;
                     }).join('');
 
-                    subetapaDiv.innerHTML = `<div class="flex justify-between items-center mb-2"><p class="font-semibold">${subetapa.nome}</p><p class="text-sm font-semibold text-gray-600">${totalProduzidoSubetapa} / ${ordemProducaoAtual.quantidade}</p></div><div class="flex space-x-2"><button class="iniciar-btn flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-2 rounded-md text-sm disabled:opacity-50" ${!canStart || !canInteract ? 'disabled' : ''}>Iniciar</button><button class="pausar-btn flex-1 ${isStarted && activeApontamento && activeApontamento.emPausa ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-gray-500 hover:bg-gray-600'} text-white font-semibold py-1 px-2 rounded-md text-sm disabled:opacity-50" ${!isStarted || isFinished || !canInteract ? 'disabled' : ''}>${isStarted && activeApontamento && activeApontamento.emPausa ? 'Continuar' : 'Pausar'}</button><button class="concluir-btn flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-2 rounded-md text-sm disabled:opacity-50" ${!isStarted || isFinished || (isStarted && activeApontamento && activeApontamento.emPausa) || !canInteract ? 'disabled' : ''}>Concluir</button></div><div class="apontamentos-list mt-2">${apontamentosHTML}</div>`;
+                    subetapaDiv.innerHTML = `<div class="flex justify-between items-center mb-2"><p class="font-semibold">${subetapa.nome}</p><p class="text-sm font-semibold text-gray-600">${totalProduzidoSubetapa} / ${ordemProducaoAtual.quantidade}</p></div><div class="flex space-x-2"><button class="iniciar-btn flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-2 rounded-md text-sm disabled:opacity-50" ${!canStart || !canInteract ? 'disabled' : ''}>Iniciar</button><button class="pausar-btn flex-1 ${isStarted && activeApontamento && activeApontamento.emPausa ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-gray-500 hover:bg-gray-600'} text-white font-semibold py-1 px-2 rounded-md text-sm disabled:opacity-50" ${!isStarted || isFinished || !canInteract ? 'disabled' : ''}>${isStarted && activeApontamento && activeApontamento.emPausa ? 'Continuar' : 'Pausar'}</button><button class="refugo-btn flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold py-1 px-2 rounded-md text-sm disabled:opacity-50" ${!isStarted || isFinished || !canInteract ? 'disabled' : ''}>Refugo</button><button class="concluir-btn flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-2 rounded-md text-sm disabled:opacity-50" ${!isStarted || isFinished || (isStarted && activeApontamento && activeApontamento.emPausa) || !canInteract ? 'disabled' : ''}>Concluir</button></div><div class="apontamentos-list mt-2">${apontamentosHTML}</div>`;
                     subetapasContainer.appendChild(subetapaDiv);
                 });
                 elements.etapasApontamento.appendChild(etapaDiv);
@@ -470,6 +525,7 @@
             elements.etapasApontamento.querySelectorAll('.iniciar-btn').forEach(btn => btn.addEventListener('click', handleStart));
             elements.etapasApontamento.querySelectorAll('.pausar-btn').forEach(btn => btn.addEventListener('click', handlePause));
             elements.etapasApontamento.querySelectorAll('.concluir-btn').forEach(btn => btn.addEventListener('click', handleConclude));
+            elements.etapasApontamento.querySelectorAll('.refugo-btn').forEach(btn => btn.addEventListener('click', handleRefugo));
         }
         
         function handleStart(event) {
@@ -513,6 +569,16 @@
                 console.error("Transaction failed: ", e);
                 showAviso("Falha ao pausar/continuar. Tente novamente.");
             }
+        }
+
+        function handleRefugo(event) {
+            const parent = event.target.closest('.subetapa-card');
+            const { index, subIndex } = parent.dataset;
+            currentRefugoContext = { index: parseInt(index), subIndex: parseInt(subIndex) };
+            elements.refugoModal.classList.remove('hidden');
+            elements.motivoRefugoInput.value = '';
+            elements.quantidadeRefugoInput.value = '';
+            elements.motivoRefugoInput.focus();
         }
 
         function handleConclude(event) {
@@ -730,8 +796,19 @@
                 return;
             }
 
-            const startDate = elements.startDateFilter.value ? new Date(elements.startDateFilter.value + 'T00:00:00') : null;
-            const endDate = elements.endDateFilter.value ? new Date(elements.endDateFilter.value + 'T23:59:59') : null;
+            // Definir padrão de 30 dias se não houver filtros
+            let startDate, endDate;
+            if (elements.startDateFilter.value && elements.endDateFilter.value) {
+                startDate = new Date(elements.startDateFilter.value + 'T00:00:00');
+                endDate = new Date(elements.endDateFilter.value + 'T23:59:59');
+            } else {
+                // Padrão: últimos 30 dias
+                endDate = new Date();
+                endDate.setHours(23, 59, 59, 999);
+                startDate = new Date();
+                startDate.setDate(startDate.getDate() - 30);
+                startDate.setHours(0, 0, 0, 0);
+            }
 
             const filteredApontamentos = [];
             allOrdersData.forEach(ordem => {
@@ -740,8 +817,8 @@
                         sub.apontamentos?.forEach(ap => {
                             if (ap.fim) {
                                 const fimDate = ap.fim.toDate();
-                                const isAfterStart = !startDate || fimDate >= startDate;
-                                const isBeforeEnd = !endDate || fimDate <= endDate;
+                                const isAfterStart = fimDate >= startDate;
+                                const isBeforeEnd = fimDate <= endDate;
                                 if (isAfterStart && isBeforeEnd) {
                                     filteredApontamentos.push({ ...ap, subetapaNome: sub.nome, etapaNome: etapa.nome, meta: sub.meta });
                                 }
@@ -755,7 +832,29 @@
             allOrdersData.forEach(ordem => ordem.etapas?.forEach(etapa => etapa.subetapas?.forEach(sub => subetapaSet.add(sub.nome))));
             const currentSubetapaFilterVal = elements.subetapaFilter.value;
             elements.subetapaFilter.innerHTML = '<option value="">Selecione uma sub-etapa...</option>';
-            [...subetapaSet].sort().forEach(subetapa => {
+            // Função para extrair número de ordenação do nome
+            function extractOrderNumber(name) {
+                const match = name.match(/^(\d+(?:\.\d+)*)/);
+                if (match) {
+                    return match[1].split('.').map(num => parseInt(num, 10));
+                }
+                return [Infinity];
+            }
+            
+            // Ordenação numérica das sub-etapas
+            [...subetapaSet].sort((a, b) => {
+                const aNumbers = extractOrderNumber(a);
+                const bNumbers = extractOrderNumber(b);
+                
+                for (let i = 0; i < Math.max(aNumbers.length, bNumbers.length); i++) {
+                    const aNum = aNumbers[i] || 0;
+                    const bNum = bNumbers[i] || 0;
+                    if (aNum !== bNum) {
+                        return aNum - bNum;
+                    }
+                }
+                return 0;
+            }).forEach(subetapa => {
                 const option = document.createElement('option');
                 option.value = subetapa; option.textContent = subetapa;
                 elements.subetapaFilter.appendChild(option);
@@ -768,6 +867,7 @@
             
             updateProductivityChart(selectedSubetapa, filteredApontamentos);
             updateTimeSpentChart(filteredApontamentos);
+            updateRefugoChart(filteredApontamentos);
             updateDailyProductionChart(filteredApontamentos);
         }
 
@@ -864,8 +964,12 @@
                 timeSpent[ap.subetapaNome] += ap.tempoLiquido || 0;
             });
             
-            const labels = Object.keys(timeSpent);
-            const data = Object.values(timeSpent).map(ms => ms / 3600000); // convert to hours
+            // Ordenar do maior para o menor tempo gasto
+            const sortedEntries = Object.entries(timeSpent)
+                .sort(([,a], [,b]) => b - a); // Ordena por valor decrescente
+            
+            const labels = sortedEntries.map(([label]) => label);
+            const data = sortedEntries.map(([, ms]) => ms / 3600000); // convert to hours
             
             timeSpentChart = new Chart(ctx, {
                 type: 'pie',
@@ -901,6 +1005,89 @@
             });
         }
 
+        function updateRefugoChart(apontamentos) {
+            const canvas = document.getElementById('refugoChart');
+            if(!canvas) return;
+            const ctx = canvas.getContext('2d');
+            if (refugoChart) refugoChart.destroy();
+            
+            const refugoData = {};
+            
+            // Coletar refugos de apontamentos
+            apontamentos.forEach(ap => {
+                if (ap.refugos && Array.isArray(ap.refugos)) {
+                    ap.refugos.forEach(refugo => {
+                        if (!refugoData[ap.subetapaNome]) {
+                            refugoData[ap.subetapaNome] = 0;
+                        }
+                        refugoData[ap.subetapaNome] += refugo.quantidade || 0;
+                    });
+                }
+            });
+            
+            // Também coletar refugos diretos das sub-etapas
+            allOrdersData.forEach(ordem => {
+                ordem.etapas?.forEach(etapa => {
+                    etapa.subetapas?.forEach(sub => {
+                        if (sub.refugos && Array.isArray(sub.refugos)) {
+                            sub.refugos.forEach(refugo => {
+                                if (!refugoData[sub.nome]) {
+                                    refugoData[sub.nome] = 0;
+                                }
+                                refugoData[sub.nome] += refugo.quantidade || 0;
+                            });
+                        }
+                    });
+                });
+            });
+            
+            // Ordenar do maior para o menor
+            const sortedEntries = Object.entries(refugoData)
+                .sort(([,a], [,b]) => b - a);
+            
+            const labels = sortedEntries.map(([label]) => label);
+            const data = sortedEntries.map(([, quantidade]) => quantidade);
+            
+            refugoChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Quantidade de Refugos',
+                        data,
+                        backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                        borderColor: 'rgba(239, 68, 68, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { 
+                        y: { 
+                            beginAtZero: true, 
+                            title: { display: true, text: 'Quantidade de Refugos' } 
+                        },
+                        x: {
+                            title: { display: true, text: 'Sub-etapas' }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.parsed.y;
+                                    return value === 0 
+                                        ? 'Nenhum refugo registrado'
+                                        : `${value} peças refugadas`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
         function updateDailyProductionChart(apontamentos) {
             const canvas = document.getElementById('dailyProductionChart');
             if(!canvas) return;
@@ -908,13 +1095,47 @@
             if (dailyProductionChart) dailyProductionChart.destroy();
 
             const dailyProduction = {};
-            apontamentos.forEach(ap => {
-                const day = ap.fim.toDate().toISOString().split('T')[0];
-                if (!dailyProduction[day]) {
+            
+            // Definir período de 30 dias
+            const endDate = new Date();
+            endDate.setHours(23, 59, 59, 999);
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - 30);
+            startDate.setHours(0, 0, 0, 0);
+            
+            // Se há filtros aplicados, usar eles
+            if (elements.startDateFilter.value && elements.endDateFilter.value) {
+                const filterStart = new Date(elements.startDateFilter.value + 'T00:00:00');
+                const filterEnd = new Date(elements.endDateFilter.value + 'T23:59:59');
+                startDate.setTime(filterStart.getTime());
+                endDate.setTime(filterEnd.getTime());
+            }
+            
+            // Buscar ordens concluídas
+            allOrdersData.forEach(ordem => {
+                if (ordem.concluida && ordem.dataFim) {
+                    const fimDate = ordem.dataFim.toDate();
+                    
+                    if (fimDate >= startDate && fimDate <= endDate) {
+                        const day = fimDate.toISOString().split('T')[0];
+                        if (!dailyProduction[day]) {
+                            dailyProduction[day] = 0;
+                        }
+                        dailyProduction[day] += ordem.quantidade || 0;
+                    }
+                }
+            });
+            
+            // Se não há dados, criar alguns dias com zero para mostrar o período
+            if (Object.keys(dailyProduction).length === 0) {
+                const today = new Date();
+                for (let i = 6; i >= 0; i--) {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() - i);
+                    const day = date.toISOString().split('T')[0];
                     dailyProduction[day] = 0;
                 }
-                dailyProduction[day] += ap.quantidade || 0;
-            });
+            }
             
             const labels = Object.keys(dailyProduction).sort();
             const data = labels.map(day => dailyProduction[day]);
@@ -924,17 +1145,40 @@
                 data: {
                     labels,
                     datasets: [{
-                        label: 'Peças Produzidas por Dia',
+                        label: 'Produtos Finalizados',
                         data,
                         borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.1)',
                         tension: 0.1,
-                        fill: false
+                        fill: true,
+                        pointRadius: 5,
+                        pointHoverRadius: 8
                     }]
                 },
                 options: {
-                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Quantidade de Peças' } } },
+                    scales: { 
+                        y: { 
+                            beginAtZero: true, 
+                            title: { display: true, text: 'Quantidade' } 
+                        },
+                        x: {
+                            title: { display: true, text: 'Data' }
+                        }
+                    },
                     responsive: true,
-                    maintainAspectRatio: false
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.parsed.y;
+                                    return value === 0 
+                                        ? 'Nenhum produto finalizado'
+                                        : `${value} produtos finalizados`;
+                                }
+                            }
+                        }
+                    }
                 }
             });
         }
@@ -987,7 +1231,31 @@
                     globalEtapasData.push(etapaData);
                     allEtapas.add(etapaData.nome);
                 });
-                globalEtapasData.sort((a,b) => (a.nome || "").localeCompare(b.nome || ""));
+                // Função para extrair número de ordenação do nome da etapa
+                function extractOrderNumber(name) {
+                    const match = name.match(/^(\d+(?:\.\d+)*)/);
+                    if (match) {
+                        // Converte "1.2.3" em [1, 2, 3] para comparação hierárquica
+                        return match[1].split('.').map(num => parseInt(num, 10));
+                    }
+                    return [Infinity]; // Itens sem número vão para o final
+                }
+                
+                // Ordenação numérica baseada na numeração das etapas
+                globalEtapasData.sort((a, b) => {
+                    const aNumbers = extractOrderNumber(a.nome || "");
+                    const bNumbers = extractOrderNumber(b.nome || "");
+                    
+                    // Compara cada nível da numeração (1 vs 2, depois 1.1 vs 1.2, etc.)
+                    for (let i = 0; i < Math.max(aNumbers.length, bNumbers.length); i++) {
+                        const aNum = aNumbers[i] || 0;
+                        const bNum = bNumbers[i] || 0;
+                        if (aNum !== bNum) {
+                            return aNum - bNum;
+                        }
+                    }
+                    return 0;
+                });
                 
                 elements.listaEtapasCadastradas.innerHTML = '';
                 globalEtapasData.forEach(etapa => {
@@ -1113,7 +1381,33 @@
             ];
             elements.tabPermissionsContainer.innerHTML = tabPermissions.map(p => `<div><input type="checkbox" id="perm_${p.id}" name="tab-permission" value="${p.id}" class="rounded"><label for="perm_${p.id}" class="ml-2 text-sm">${p.label}</label></div>`).join('');
             
-            elements.etapaPermissionsContainer.innerHTML = [...allEtapas].sort().map(etapa => `<div><input type="checkbox" id="perm_etapa_${etapa}" name="etapa-permission" value="${etapa}" class="rounded"><label for="perm_etapa_${etapa}" class="ml-2 text-sm">${etapa}</label></div>`).join('');
+            // Função para extrair número de ordenação do nome da etapa
+            function extractOrderNumber(name) {
+                const match = name.match(/^(\d+(?:\.\d+)*)/);
+                if (match) {
+                    // Converte "1.2.3" em [1, 2, 3] para comparação hierárquica
+                    return match[1].split('.').map(num => parseInt(num, 10));
+                }
+                return [Infinity]; // Itens sem número vão para o final
+            }
+            
+            // Ordenação numérica das etapas para permissões
+            const sortedEtapas = [...allEtapas].sort((a, b) => {
+                const aNumbers = extractOrderNumber(a);
+                const bNumbers = extractOrderNumber(b);
+                
+                // Compara cada nível da numeração (1 vs 2, depois 1.1 vs 1.2, etc.)
+                for (let i = 0; i < Math.max(aNumbers.length, bNumbers.length); i++) {
+                    const aNum = aNumbers[i] || 0;
+                    const bNum = bNumbers[i] || 0;
+                    if (aNum !== bNum) {
+                        return aNum - bNum;
+                    }
+                }
+                return 0;
+            });
+            
+            elements.etapaPermissionsContainer.innerHTML = sortedEtapas.map(etapa => `<div><input type="checkbox" id="perm_etapa_${etapa}" name="etapa-permission" value="${etapa}" class="rounded"><label for="perm_etapa_${etapa}" class="ml-2 text-sm">${etapa}</label></div>`).join('');
         }
         
         async function initializeFirebase() {
@@ -1305,6 +1599,48 @@
                     elements.salvarJustificativaBtn.disabled = false;
                 }
             });
+            elements.salvarRefugoBtn.addEventListener('click', async () => {
+                const motivo = elements.motivoRefugoInput.value.trim();
+                const quantidade = parseInt(elements.quantidadeRefugoInput.value, 10);
+                if (!motivo || isNaN(quantidade) || !currentRefugoContext) return showAviso("Por favor, informe motivo e quantidade do refugo.");
+
+                elements.salvarRefugoBtn.disabled = true;
+                try {
+                    await runTransaction(db, async (transaction) => {
+                        const orderRef = doc(db, `artifacts/${appId}/public/data/ordens`, currentOrderDocId);
+                        const orderDoc = await transaction.get(orderRef);
+                        if (!orderDoc.exists()) throw "Ordem não encontrada!";
+                        const currentOrderData = orderDoc.data();
+
+                        const { index, subIndex } = currentRefugoContext;
+                        const sub = currentOrderData.etapas[index].subetapas[subIndex];
+                        const activeApontamento = sub.apontamentos.find(a => !a.fim);
+                        const now = Timestamp.now();
+
+                        if (activeApontamento) {
+                            if (!activeApontamento.refugos) activeApontamento.refugos = [];
+                            activeApontamento.refugos.push({ motivo, quantidade, data: now });
+                        } else {
+                            // Se não houver apontamento ativo, guarda o refugo no nível da subetapa
+                            if (!sub.refugos) sub.refugos = [];
+                            sub.refugos.push({ motivo, quantidade, data: now });
+                        }
+
+                        transaction.set(orderRef, currentOrderData);
+                    });
+                    elements.refugoModal.classList.add('hidden');
+                    elements.motivoRefugoInput.value = '';
+                    elements.quantidadeRefugoInput.value = '';
+                    showAviso("Refugo registrado com sucesso.");
+                } catch (e) {
+                    console.error("Falha ao registrar refugo:", e);
+                    showAviso("Falha ao registrar refugo. Tente novamente.");
+                } finally {
+                    elements.salvarRefugoBtn.disabled = false;
+                    currentRefugoContext = null;
+                }
+            });
+            elements.cancelarRefugoBtn.addEventListener('click', () => elements.refugoModal.classList.add('hidden'));
             elements.salvarQuantidadeBtn.addEventListener('click', async () => {
                 const quantidade = parseInt(elements.quantidadeInputModal.value, 10);
                 if (isNaN(quantidade) || quantidade <= 0 || !currentConcludeContext) return showAviso("Por favor, insira uma quantidade válida.");
