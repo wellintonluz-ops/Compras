@@ -673,6 +673,76 @@
         </div>
     </div>
 
+    <!-- Modal: Comparativo OC x NF (abre após importar XML) -->
+    <div id="modal-xml-compare" class="fixed inset-0 bg-black/60 flex items-center justify-center z-[270] p-4 hidden">
+        <div class="bg-white rounded-xl w-full max-w-6xl shadow-2xl max-h-[94vh] overflow-hidden flex flex-col">
+            <div class="p-4 border-b flex justify-between items-center bg-indigo-50 shrink-0">
+                <div>
+                    <h3 class="font-bold text-slate-800 text-base">Conferência OC × Nota Fiscal</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">
+                        <span id="cmp-oc-id" class="font-bold text-indigo-700"></span>
+                        &nbsp;×&nbsp;
+                        <span id="cmp-nf-id" class="font-bold text-slate-700"></span>
+                        &nbsp;|&nbsp;Score: <span id="cmp-score" class="font-bold"></span>
+                    </p>
+                </div>
+                <button onclick="closeModal('modal-xml-compare')" class="text-slate-400 hover:text-slate-800 text-xl leading-none">✕</button>
+            </div>
+            <div class="overflow-y-auto flex-1 p-5 space-y-5">
+                <div id="cmp-divergence-banner" class="rounded-lg p-3 text-xs space-y-1 border"></div>
+                <div>
+                    <h4 class="text-xs font-bold text-slate-500 uppercase mb-2">Itens — OC (esquerda) × NF (direita, código editável)</h4>
+                    <div class="overflow-x-auto border border-slate-200 rounded-lg">
+                        <table class="w-full min-w-[900px] text-xs border-collapse">
+                            <thead class="bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th class="p-2 font-bold text-slate-400 uppercase text-center w-8">#</th>
+                                    <th class="p-2 font-bold text-indigo-600 uppercase">OC · Descrição</th>
+                                    <th class="p-2 font-bold text-indigo-600 uppercase">OC · SKU</th>
+                                    <th class="p-2 font-bold text-indigo-600 uppercase text-right">OC · Qtde</th>
+                                    <th class="p-2 font-bold text-indigo-600 uppercase text-right">OC · Preço</th>
+                                    <th class="p-2 text-center w-8"></th>
+                                    <th class="p-2 font-bold text-emerald-700 uppercase">NF · Descrição</th>
+                                    <th class="p-2 font-bold text-emerald-700 uppercase">NF · Código <span class="normal-case text-emerald-500 font-normal">(editável)</span></th>
+                                    <th class="p-2 font-bold text-emerald-700 uppercase text-right">NF · Qtde</th>
+                                    <th class="p-2 font-bold text-emerald-700 uppercase text-right">NF · Vlr Unit.</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cmp-items-body" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                    <div class="p-3 rounded-lg bg-indigo-50 border border-indigo-100">
+                        <p class="font-bold text-indigo-500 uppercase mb-1">Total OC</p>
+                        <p id="cmp-oc-total" class="font-bold text-indigo-800 text-sm">--</p>
+                    </div>
+                    <div class="p-3 rounded-lg bg-emerald-50 border border-emerald-100">
+                        <p class="font-bold text-emerald-600 uppercase mb-1">Total NF (produtos)</p>
+                        <p id="cmp-nf-products" class="font-bold text-emerald-800 text-sm">--</p>
+                    </div>
+                    <div class="p-3 rounded-lg bg-amber-50 border border-amber-100">
+                        <p class="font-bold text-amber-600 uppercase mb-1">Total IPI (NF)</p>
+                        <p id="cmp-nf-ipi" class="font-bold text-amber-800 text-sm">--</p>
+                    </div>
+                    <div class="p-3 rounded-lg bg-slate-50 border border-slate-200">
+                        <p class="font-bold text-slate-500 uppercase mb-1">Valor Total NF</p>
+                        <p id="cmp-nf-total" class="font-bold text-slate-800 text-sm">--</p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 border-t bg-slate-50 shrink-0 flex flex-wrap items-center justify-between gap-3">
+                <button onclick="revalidateAndRefreshComparison()" class="px-4 py-2 text-xs font-bold text-indigo-700 bg-indigo-100 border border-indigo-200 rounded-lg hover:bg-indigo-200">
+                    ↻ Revalidar após edição
+                </button>
+                <div class="flex gap-2">
+                    <button onclick="closeModal('modal-xml-compare')" class="px-4 py-2 text-xs font-bold border border-slate-300 rounded-lg hover:bg-slate-100">Cancelar</button>
+                    <button onclick="saveXmlComparisonResult()" class="px-4 py-2 text-xs font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">Salvar Resultado</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="modal-nf-details" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[260] p-4 hidden">
         <div class="bg-white rounded-xl w-full max-w-5xl overflow-hidden shadow-2xl max-h-[92vh] overflow-y-auto">
             <div class="p-4 border-b flex justify-between items-center bg-slate-50">
@@ -2842,6 +2912,135 @@
             };
         }
 
+        // Estado do modal comparativo
+        let _cmpOrder = null;
+        let _cmpNfData = null;
+
+        function openXmlComparisonModal(order, nfData) {
+            _cmpOrder  = order;
+            _cmpNfData = nfData;
+            _renderComparisonModal();
+            openModal('modal-xml-compare');
+        }
+
+        function _collectNfCodesFromModal() {
+            const inputs = document.querySelectorAll('#cmp-items-body .nf-code-input');
+            inputs.forEach((input, idx) => {
+                if (_cmpNfData.items[idx]) {
+                    _cmpNfData.items[idx].code = input.value.trim();
+                }
+            });
+        }
+
+        function _renderComparisonModal() {
+            const order  = _cmpOrder;
+            const nfData = _cmpNfData;
+            const result = validateOrderWithNfXml(order, nfData);
+            const nfId   = nfData.nfNumber.startsWith('NF') ? nfData.nfNumber : `NF-${nfData.nfNumber}`;
+
+            document.getElementById('cmp-oc-id').textContent = order.id;
+            document.getElementById('cmp-nf-id').textContent = nfId;
+
+            const scoreEl = document.getElementById('cmp-score');
+            scoreEl.textContent = `${result.score}%`;
+            scoreEl.className   = `font-bold ${ result.score === 100 ? 'text-emerald-600' : result.score >= 70 ? 'text-amber-600' : 'text-rose-600' }`;
+
+            // Banner de divergências
+            const banner = document.getElementById('cmp-divergence-banner');
+            const allOk  = result.divergences.length === 1 && /sem diverg/i.test(result.divergences[0]);
+            banner.className = `rounded-lg p-3 text-xs space-y-1 border ${ allOk ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200' }`;
+            banner.innerHTML  = result.divergences.map(d => {
+                const ok = /sem diverg/i.test(d);
+                return `<div class="flex items-start gap-2"><span class="${ ok ? 'text-emerald-600' : 'text-rose-500' }">${ ok ? '✓' : '•' }</span><span class="text-slate-700">${escapeHtml(d)}</span></div>`;
+            }).join('');
+
+            // Totais
+            document.getElementById('cmp-oc-total').textContent    = formatMoney(order.total);
+            document.getElementById('cmp-nf-products').textContent = formatMoney(nfData.totalProducts);
+            document.getElementById('cmp-nf-ipi').textContent      = formatMoney(nfData.totalIpi);
+            document.getElementById('cmp-nf-total').textContent    = formatMoney(nfData.totalValue);
+
+            // Tabela comparativa
+            const ocItems = getOrderItemsForValidation(order);
+            const nfItems = nfData.items || [];
+            const rows    = Math.max(ocItems.length, nfItems.length);
+            const tbody   = document.getElementById('cmp-items-body');
+
+            tbody.innerHTML = Array.from({ length: rows }, (_, idx) => {
+                const oc = ocItems[idx]  || null;
+                const nf = nfItems[idx]  || null;
+
+                // Verifica match de código
+                const ocSku  = String(oc?.sku  || '').toLowerCase().trim();
+                const nfCode = String(nf?.code || '').toLowerCase().trim();
+                const codeOk = ocSku && nfCode && (ocSku === nfCode);
+                const rowBg  = !oc || !nf ? 'bg-amber-50' : (codeOk ? '' : 'bg-rose-50/40');
+
+                const fmtQty = v => Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+
+                return `<tr class="${rowBg}">
+                    <td class="p-2 text-center text-slate-400 font-mono">${idx + 1}</td>
+                    <!-- OC -->
+                    <td class="p-2 text-slate-700">${escapeHtml(oc?.description || '--')}</td>
+                    <td class="p-2 font-mono text-indigo-700">${escapeHtml(oc?.sku || '--')}</td>
+                    <td class="p-2 text-right tabular-nums">${oc ? fmtQty(oc.qty) : '--'}</td>
+                    <td class="p-2 text-right tabular-nums">${oc ? formatMoney(oc.price) : '--'}</td>
+                    <!-- Indicador de match -->
+                    <td class="p-2 text-center text-lg leading-none">${ !oc || !nf ? '<span title="Sem par">⚠</span>' : codeOk ? '<span class="text-emerald-500" title="Código OK">✓</span>' : '<span class="text-rose-500" title="Código divergente">✗</span>' }</td>
+                    <!-- NF -->
+                    <td class="p-2 text-slate-700">${escapeHtml(nf?.description || '--')}</td>
+                    <td class="p-2">
+                        ${ nf ? `<input type="text" class="nf-code-input w-full border ${ codeOk ? 'border-emerald-300 bg-emerald-50' : 'border-rose-300 bg-rose-50' } rounded px-1.5 py-1 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-indigo-400" value="${escapeHtml(nf.code || '')}" data-nf-idx="${idx}">` : '--' }
+                    </td>
+                    <td class="p-2 text-right tabular-nums">${nf ? fmtQty(nf.qty) : '--'}</td>
+                    <td class="p-2 text-right tabular-nums">${nf ? formatMoney(nf.unitValue) : '--'}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function revalidateAndRefreshComparison() {
+            _collectNfCodesFromModal();
+            _renderComparisonModal();
+        }
+
+        function saveXmlComparisonResult() {
+            _collectNfCodesFromModal();
+            const order  = _cmpOrder;
+            const nfData = _cmpNfData;
+            const result = validateOrderWithNfXml(order, nfData);
+            const nfId   = nfData.nfNumber.startsWith('NF') ? nfData.nfNumber : `NF-${nfData.nfNumber}`;
+            const ocId   = order.id;
+
+            const existingCompliance = complianceItems.find(item => item.ref === ocId);
+            const payload = {
+                id:           nfId,
+                ref:          ocId,
+                match:        result.score,
+                status:       result.score === 100 ? 'Validado' : 'Divergente',
+                divergence:   result.divergences.join(' '),
+                divergences:  result.divergences,
+                nfData
+            };
+
+            if (existingCompliance) {
+                Object.assign(existingCompliance, payload);
+                dbSet('complianceItems', ocId, existingCompliance);
+            } else {
+                complianceItems.unshift(payload);
+                dbSet('complianceItems', ocId, payload);
+            }
+
+            closeModal('modal-xml-compare');
+
+            if (document.getElementById('tab-compliance')?.classList.contains('active')) {
+                renderCompliance();
+            }
+
+            showAlert(`OC ${ocId} × ${nfId} — Score ${result.score}%. Resultado salvo.`, 'Conferência Salva');
+            _cmpOrder  = null;
+            _cmpNfData = null;
+        }
+
         function startOrderXmlValidation(orderId) {
             const order = orders.find(o => o.id === orderId);
             if (!order) {
@@ -2867,50 +3066,8 @@
                         showAlert('XML carregado, mas sem itens de produto para conferência.', 'Atenção');
                         return;
                     }
-
-                    const result = validateOrderWithNfXml(currentOrderForXmlValidation, nfData);
-                    const codeLabel = result.hasOrderCode
-                        ? (result.codeMatch ? 'Código: OK' : 'Código: DIVERGENTE')
-                        : 'Código: sem SKU informado na OC';
-
-                    const msg = [
-                        `OC ${currentOrderForXmlValidation.id} x ${nfData.nfNumber}`,
-                        result.productMatch ? 'Produto: OK' : 'Produto: DIVERGENTE',
-                        codeLabel,
-                        result.valueMatch ? 'Valor: OK' : `Valor: DIVERGENTE (diferença R$ ${result.valueDiff.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`,
-                        `Conferência: ${result.score}%`
-                    ].join(' | ');
-
-                    const existingCompliance = complianceItems.find(item => item.ref === currentOrderForXmlValidation.id);
-                    const nfId = nfData.nfNumber.startsWith('NF') ? nfData.nfNumber : `NF-${nfData.nfNumber}`;
-                    const ocId = currentOrderForXmlValidation.id;
-                    if (existingCompliance) {
-                        existingCompliance.id = nfId;
-                        existingCompliance.match = result.score;
-                        existingCompliance.status = result.score === 100 ? 'Validado' : 'Divergente';
-                        existingCompliance.divergence = result.divergences.join(' ');
-                        existingCompliance.divergences = result.divergences;
-                        existingCompliance.nfData = nfData;
-                        dbSet('complianceItems', ocId, existingCompliance);
-                    } else {
-                        const newItem = {
-                            id: nfId,
-                            ref: ocId,
-                            match: result.score,
-                            status: result.score === 100 ? 'Validado' : 'Divergente',
-                            divergence: result.divergences.join(' '),
-                            divergences: result.divergences,
-                            nfData
-                        };
-                        complianceItems.unshift(newItem);
-                        dbSet('complianceItems', ocId, newItem);
-                    }
-
-                    if (document.getElementById('tab-compliance').classList.contains('active')) {
-                        renderCompliance();
-                    }
-
-                    showAlert(msg, 'Conferência XML NF');
+                    // Abre modal comparativo — o salvamento ocorre ao clicar em "Salvar Resultado"
+                    openXmlComparisonModal(currentOrderForXmlValidation, nfData);
                 } catch (error) {
                     const reason = String(error?.message || error || 'erro desconhecido').slice(0, 180);
                     showAlert(`Falha ao validar XML da NF. Detalhe: ${reason}`, 'Erro');
