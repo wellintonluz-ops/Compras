@@ -1916,6 +1916,8 @@
                     if (/^\d{1,3}(?:\.\d{3})*,\d+/.test(candidate)) break;
                     // Ignora marcadores de GTIN vazios / cabeçalhos de coluna
                     if (/^(sem\s+gtin|c[oó]d\.?\s*:?\s*$|gtin|item|qtde?|unidade|valor|ipi\s*%|total)/i.test(candidate)) continue;
+                    // Ignora tokens isolados de unidade de medida (Un, UND, KG, etc.)
+                    if (/^(un|und|unid|kg|g|pç|pcs|pct|cx|lt|ml|mt|m²|m2|pc|un\.)$/i.test(candidate.trim())) continue;
                     descParts.unshift(candidate);
                 }
                 const description = descParts.join(' ').trim();
@@ -1933,13 +1935,29 @@
                 }
             }
 
+            // Deduplica por SKU (quando presente), mantendo o item com descrição mais completa.
+            // Isso evita linhas fantasma quando o mesmo SKU aparece com e sem descrição.
             const uniqItems = [];
-            const seen = new Set();
+            const seenSkus = new Map();
+            const seenDescs = new Set();
             items.forEach(item => {
-                const key = `${item.sku}|${item.description}`.toLowerCase();
-                if (!key || seen.has(key)) return;
-                seen.add(key);
-                uniqItems.push(item);
+                const skuKey = String(item.sku || '').toLowerCase().trim();
+                if (skuKey) {
+                    if (seenSkus.has(skuKey)) {
+                        const idx = seenSkus.get(skuKey);
+                        if ((item.description || '').length > (uniqItems[idx].description || '').length) {
+                            uniqItems[idx] = item;
+                        }
+                        return;
+                    }
+                    seenSkus.set(skuKey, uniqItems.length);
+                    uniqItems.push(item);
+                } else {
+                    const descKey = String(item.description || '').toLowerCase().trim();
+                    if (!descKey || seenDescs.has(descKey)) return;
+                    seenDescs.add(descKey);
+                    uniqItems.push(item);
+                }
             });
 
             if (uniqItems.length) {
