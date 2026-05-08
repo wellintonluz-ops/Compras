@@ -1929,6 +1929,10 @@
             const ie = text.match(/(?:inscri[cç][aã]o\s*estadual|\bie\b)\s*[:\-]?\s*([0-9.\-\/]{6,20})/i);
             if (ie) data['inscrição estadual'] = ie[1];
 
+            // Determina onde começa a seção de itens para não capturar
+            // dados do bloco de fornecedor como descrição de produto.
+            const itemsSectionIndex = lines.findIndex(l => /itens\s+da\s+compra/i.test(l));
+
             const items = [];
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
@@ -1939,18 +1943,26 @@
 
                 // Coleta múltiplas linhas de descrição retrocedendo a partir do SKU.
                 // Para quando encontra linha numérica (dados do item anterior),
-                // outro SKU, ou cabeçalho de seção.
+                // outro SKU, cabeçalho de seção ou o início da seção de itens.
                 const descParts = [];
                 for (let j = i - 1; j >= Math.max(0, i - 8); j--) {
+                    // Não atravessa o cabeçalho da seção de itens
+                    if (itemsSectionIndex >= 0 && j <= itemsSectionIndex) break;
                     const candidate = lines[j];
                     if (!candidate) continue;
-                    if (/^(item\b|itens da compra)/i.test(candidate)) break;
+                    if (/^(item\b|itens\s+da\s+compra)/i.test(candidate)) break;
                     if (/SKU\s*[:\-]?/i.test(candidate)) break;
                     if (/^\d{1,3}(?:\.\d{3})*,\d+/.test(candidate)) break;
+                    // Para ao encontrar linha de cabeçalho da tabela de itens
+                    if (/^(gtin\s*\/|cod\.\s*fornecedor|qtde?\s+un\s+valor)/i.test(candidate)) break;
+                    // Para ao encontrar a palavra "Fornecedor" isolada (título de seção do PDF)
+                    if (/^fornecedor\s*$/i.test(candidate)) break;
+                    // Para ao encontrar dados típicos do bloco de fornecedor
+                    if (/(ltda|s\.a\.|eireli|importa[cç][aã]o|com[eé]rcio)\b/i.test(candidate)) break;
                     // Ignora marcadores de GTIN vazios / cabeçalhos de coluna
                     if (/^(sem\s+gtin|c[oó]d\.?\s*:?\s*$|gtin|item|qtde?|unidade|valor|ipi\s*%|total)/i.test(candidate)) continue;
                     // Ignora tokens isolados de unidade de medida (Un, UND, KG, etc.)
-                    if (/^(un|und|unid|kg|g|pç|pcs|pct|cx|lt|ml|mt|m²|m2|pc|un\.)$/i.test(candidate.trim())) continue;
+                    if (/^(un|und|unid|kg|g|p[çc]|pcs|pct|cx|lt|ml|mt|m²|m2|pc|un\.)$/i.test(candidate.trim())) continue;
                     descParts.unshift(candidate);
                 }
                 const description = descParts.join(' ').trim();
