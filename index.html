@@ -1963,7 +1963,11 @@
                     if (/^(sem\s+gtin|c[oó]d\.?\s*:?\s*$|gtin|item|qtde?|unidade|valor|ipi\s*%|total)/i.test(candidate)) continue;
                     // Ignora tokens isolados de unidade de medida (Un, UND, KG, etc.)
                     if (/^(un|und|unid|kg|g|p[çc]|pcs|pct|cx|lt|ml|mt|m²|m2|pc|un\.)$/i.test(candidate.trim())) continue;
-                    descParts.unshift(candidate);
+                    // Remove prefixo "Fornecedor" que o PDF.js cola à descrição do 1º item
+                    // quando extrai o cabeçalho de coluna "GTIN / Cod. Fornecedor" inline
+                    const cleanedCandidate = candidate.replace(/^(?:gtin\s*\/?\s*cod\.?\s*)?fornecedor\s+/i, '').trim();
+                    if (!cleanedCandidate) continue;
+                    descParts.unshift(cleanedCandidate);
                 }
                 const description = descParts.join(' ').trim();
 
