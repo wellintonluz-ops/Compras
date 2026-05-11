@@ -298,6 +298,7 @@
                                     <th class="p-4 text-xs font-bold text-slate-500 uppercase text-center">Data</th>
                                     <th class="p-4 text-xs font-bold text-slate-500 uppercase text-center">Total</th>
                                     <th class="p-4 text-xs font-bold text-slate-500 uppercase text-center">Estado</th>
+                                    <th class="p-4 text-xs font-bold text-slate-500 uppercase text-center">Recebimento</th>
                                     <th class="p-4 text-xs font-bold text-slate-500 uppercase text-center actions-cell">Ações</th>
                                 </tr>
                             </thead>
@@ -684,6 +685,7 @@
                         &nbsp;×&nbsp;
                         <span id="cmp-nf-id" class="font-bold text-slate-700"></span>
                         &nbsp;|&nbsp;Score: <span id="cmp-score" class="font-bold"></span>
+                        &nbsp;|&nbsp;<span id="cmp-nf-count" class="text-slate-400 italic"></span>
                     </p>
                 </div>
                 <button onclick="closeModal('modal-xml-compare')" class="text-slate-400 hover:text-slate-800 text-xl leading-none">✕</button>
@@ -732,9 +734,16 @@
                 </div>
             </div>
             <div class="p-4 border-t bg-slate-50 shrink-0 flex flex-wrap items-center justify-between gap-3">
-                <button onclick="revalidateAndRefreshComparison()" class="px-4 py-2 text-xs font-bold text-indigo-700 bg-indigo-100 border border-indigo-200 rounded-lg hover:bg-indigo-200">
-                    ↻ Revalidar após edição
-                </button>
+                <div class="flex items-center gap-4">
+                    <button onclick="revalidateAndRefreshComparison()" class="px-4 py-2 text-xs font-bold text-indigo-700 bg-indigo-100 border border-indigo-200 rounded-lg hover:bg-indigo-200">
+                        ↻ Revalidar após edição
+                    </button>
+                    <label class="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-amber-700">
+                        <input type="checkbox" id="cmp-is-partial" class="w-4 h-4 rounded accent-amber-500">
+                        <span>Entrega Parcial</span>
+                        <span class="text-slate-400 font-normal">(NF cobre apenas parte dos itens da OC)</span>
+                    </label>
+                </div>
                 <div class="flex gap-2">
                     <button onclick="closeModal('modal-xml-compare')" class="px-4 py-2 text-xs font-bold border border-slate-300 rounded-lg hover:bg-slate-100">Cancelar</button>
                     <button onclick="saveXmlComparisonResult()" class="px-4 py-2 text-xs font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">Salvar Resultado</button>
@@ -1160,6 +1169,7 @@
                 .onSnapshot(snap => {
                     complianceItems = snap.docs.map(d => d.data()).sort(sortById);
                     if (document.getElementById('tab-compliance')?.classList.contains('active')) renderCompliance();
+                    if (document.getElementById('tab-orders')?.classList.contains('active')) renderOrders();
                     refreshDashboard();
                 }, e => console.error('Listener complianceItems:', e));
 
@@ -2665,8 +2675,19 @@
         // --- Ordens e Compliance ---
         function renderOrders() {
             const tbody = document.getElementById('orders-table-body');
-            tbody.innerHTML = orders.map(order => `
-                <tr class="hover:bg-slate-50">
+            tbody.innerHTML = orders.map(order => {
+                const recv = calcReceivingProgress(order.id);
+                const barColor = recv.pct === 100 ? 'bg-emerald-500' : (recv.pct > 0 ? 'bg-amber-400' : 'bg-slate-200');
+                const textColor = recv.pct === 100 ? 'text-emerald-700' : (recv.pct > 0 ? 'text-amber-700' : 'text-slate-400');
+                const recvCell = recv.pct === 0
+                    ? `<span class="text-xs text-slate-400 italic">Aguardando XML</span>`
+                    : `<div class="flex flex-col items-center gap-1 min-w-[90px]">
+                        <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                            <div class="${barColor} h-2 rounded-full transition-all" style="width:${recv.pct}%"></div>
+                        </div>
+                        <span class="text-[10px] font-bold ${textColor}">${recv.label}</span>
+                       </div>`;
+                return `<tr class="hover:bg-slate-50">
                     <td class="p-4 text-sm font-semibold text-blue-600 text-center">${order.id}</td>
                     <td class="p-4 text-sm text-center">
                         ${order.scId ? `
@@ -2679,6 +2700,7 @@
                     <td class="p-4 text-sm text-center">${order.date}</td>
                     <td class="p-4 text-sm font-bold text-slate-800 text-center">R$ ${order.total.toLocaleString('pt-PT')}</td>
                     <td class="p-4 text-center"><span class="px-2 py-1 ${getOrderStatusStyle(order.status)} rounded text-[10px] font-bold uppercase">${order.status}</span></td>
+                    <td class="p-4 text-center">${recvCell}</td>
                     <td class="p-3 text-center actions-cell">
                         <div class="flex justify-center items-center gap-2 flex-wrap">
                             ${order.status === 'Em Aprovação' ? `
@@ -2694,7 +2716,8 @@
                             </button>
                         </div>
                     </td>
-                </tr>`).join('');
+                </tr>`;
+            }).join('');
             lucide.createIcons();
         }
 
@@ -2854,43 +2877,93 @@
             return [];
         }
 
-        function validateOrderWithNfXml(order, nfData) {
+        // previousNfs: array de complianceItems já salvos para esta OC (para excluir itens já recebidos)
+        function validateOrderWithNfXml(order, nfData, previousNfs) {
             const orderItems = getOrderItemsForValidation(order);
-            const orderDescriptions = orderItems
-                .map(item => normalizeValidationText(item.description))
-                .filter(Boolean);
-            const orderSkus = orderItems
-                .map(item => normalizeValidationText(item.sku))
-                .filter(Boolean);
+            const norm = v => normalizeValidationText(v);
 
-            const nfDescriptions = nfData.items
-                .map(item => normalizeValidationText(item.description))
-                .filter(Boolean);
-            const nfCodes = nfData.items
-                .map(item => normalizeValidationText(item.code))
-                .filter(Boolean);
+            // Conjuntos já recebidos em NFs anteriores (por SKU ou descrição)
+            const prevReceivedSkus  = new Set();
+            const prevReceivedDescs = new Set();
+            (previousNfs || []).forEach(ci => {
+                if (!ci.nfData) return;
+                ci.nfData.items.forEach(nfItem => {
+                    if (nfItem.code)        prevReceivedSkus.add(norm(nfItem.code));
+                    if (nfItem.description) prevReceivedDescs.add(norm(nfItem.description));
+                });
+            });
 
-            const missingDescriptions = orderDescriptions.filter(desc =>
-                !nfDescriptions.some(nfDesc => nfDesc.includes(desc) || desc.includes(nfDesc))
-            );
+            // Itens da OC ainda pendentes (não cobertos por NFs anteriores)
+            const pendingOcItems = orderItems.filter(oi => {
+                const sku  = norm(oi.sku);
+                const desc = norm(oi.description);
+                if (sku  && prevReceivedSkus.has(sku))   return false;
+                if (desc && prevReceivedDescs.has(desc))  return false;
+                return true;
+            });
 
-            const missingCodes = orderSkus.filter(code => !nfCodes.includes(code));
+            // Mapa de itens desta NF por código e por descrição
+            const nfByCode = new Map();
+            const nfByDesc = new Map();
+            nfData.items.forEach((nfItem, idx) => {
+                const c = norm(nfItem.code);
+                const d = norm(nfItem.description);
+                if (c) nfByCode.set(c, idx);
+                if (d) nfByDesc.set(d, idx);
+            });
+
+            // Para cada item pendente da OC: tenta match código-primeiro, depois descrição
+            const matchedNfIdxs = new Set();
+            const missingOcItems = [];
+
+            pendingOcItems.forEach(oi => {
+                const sku  = norm(oi.sku);
+                const desc = norm(oi.description);
+
+                // 1. Match por código exato
+                if (sku && nfByCode.has(sku)) {
+                    matchedNfIdxs.add(nfByCode.get(sku));
+                    return;
+                }
+                // 2. Match por descrição (substring mútua)
+                let foundByDesc = false;
+                nfByDesc.forEach((idx, nd) => {
+                    if (!matchedNfIdxs.has(idx) && desc && (nd.includes(desc) || desc.includes(nd))) {
+                        matchedNfIdxs.add(idx);
+                        foundByDesc = true;
+                    }
+                });
+                if (!foundByDesc) missingOcItems.push(oi);
+            });
+
+            // Itens da NF que não foram pareados com nenhum item da OC (inclui todos da OC, não só pendentes)
+            const allOcSkus  = new Set(orderItems.map(i => norm(i.sku)).filter(Boolean));
+            const allOcDescs = orderItems.map(i => norm(i.description)).filter(Boolean);
+            const extraNfItems = nfData.items.filter((nfItem, idx) => {
+                if (matchedNfIdxs.has(idx)) return false;
+                const c = norm(nfItem.code);
+                const d = norm(nfItem.description);
+                const inOcBySku  = c && allOcSkus.has(c);
+                const inOcByDesc = d && allOcDescs.some(od => od.includes(d) || d.includes(od));
+                return !inOcBySku && !inOcByDesc;
+            });
 
             const divergences = [];
-
-            const productMatch = orderDescriptions.length > 0 && missingDescriptions.length === 0;
-
-            const hasOrderCode = orderSkus.length > 0;
-            const codeMatch = hasOrderCode && missingCodes.length === 0;
-
-            const valueDiff = Math.abs((Number(order.total) || 0) - (Number(nfData.totalValue) || 0));
-            const valueMatch = valueDiff <= 0.01;
+            const productMatch = missingOcItems.length === 0;
+            const hasOrderCode = pendingOcItems.some(oi => !!norm(oi.sku));
+            const valueDiff    = Math.abs((Number(order.total) || 0) - (Number(nfData.totalValue) || 0));
+            const valueMatch   = valueDiff <= 0.01;
 
             if (!productMatch) {
-                divergences.push(`Produto divergente (${missingDescriptions.length} item(ns) da OC não encontrado(s) na NF).`);
+                // Mostra apenas código/SKU dos itens pendentes, não a descrição
+                const codes = missingOcItems
+                    .map(oi => oi.sku || '--sem-código--')
+                    .slice(0, 8);
+                divergences.push(`${missingOcItems.length} item(ns) pendente(s) da OC não consta(m) nesta NF: ${codes.join(', ')}${missingOcItems.length > 8 ? '…' : ''}.`);
             }
-            if (hasOrderCode && !codeMatch) {
-                divergences.push(`Código/SKU divergente (${missingCodes.join(', ')}).`);
+            if (extraNfItems.length) {
+                const codes = extraNfItems.map(i => i.code || '--').slice(0, 8).join(', ');
+                divergences.push(`${extraNfItems.length} item(ns) na NF sem correspondência na OC: ${codes}${extraNfItems.length > 8 ? '…' : ''}.`);
             }
             if (!valueMatch) {
                 divergences.push(`Valor divergente (diferença R$ ${valueDiff.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}).`);
@@ -2898,15 +2971,17 @@
             if (!divergences.length) divergences.push('Sem divergências encontradas.');
 
             const checks = [productMatch, valueMatch];
-            if (hasOrderCode) checks.push(codeMatch);
+            if (extraNfItems.length) checks.push(false);
             const score = Math.round((checks.filter(Boolean).length / checks.length) * 100);
 
             return {
                 hasOrderCode,
                 productMatch,
-                codeMatch,
+                codeMatch: productMatch,
                 valueMatch,
                 valueDiff,
+                extraNfItems,
+                missingOcItems,
                 divergences,
                 score
             };
@@ -2919,27 +2994,85 @@
         function openXmlComparisonModal(order, nfData) {
             _cmpOrder  = order;
             _cmpNfData = nfData;
+
+            // Pré-marcar parcial se já há outras NFs para esta OC
+            const prevNfs = complianceItems.filter(ci => ci.ref === order.id);
+            const partialCb = document.getElementById('cmp-is-partial');
+            if (partialCb) partialCb.checked = prevNfs.length > 0;
+
             _renderComparisonModal();
             openModal('modal-xml-compare');
         }
 
         function _collectNfCodesFromModal() {
-            const inputs = document.querySelectorAll('#cmp-items-body .nf-code-input');
-            inputs.forEach((input, idx) => {
-                if (_cmpNfData.items[idx]) {
-                    _cmpNfData.items[idx].code = input.value.trim();
+            document.querySelectorAll('#cmp-items-body .nf-code-input').forEach(input => {
+                const nfIdx = parseInt(input.dataset.nfIdx, 10);
+                if (!isNaN(nfIdx) && _cmpNfData.items[nfIdx]) {
+                    _cmpNfData.items[nfIdx].code = input.value.trim();
                 }
             });
+        }
+
+        // Constrói pares OC↔NF por correspondência inteligente (SKU → descrição → sem par)
+        function _buildComparisonPairs(ocItems, nfItems) {
+            const used = new Set();
+            const pairs = [];
+
+            const norm = v => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+
+            // 1ª passagem: match por SKU === código NF
+            const ocRemainder = [];
+            ocItems.forEach(oc => {
+                const ocSku = norm(oc.sku);
+                if (ocSku) {
+                    const i = nfItems.findIndex((nf, idx) => !used.has(idx) && norm(nf.code) === ocSku);
+                    if (i !== -1) { used.add(i); pairs.push({ oc, nf: nfItems[i], nfIdx: i }); return; }
+                }
+                ocRemainder.push(oc);
+            });
+
+            // 2ª passagem: match por descrição (substring mútua)
+            const ocStillRemainder = [];
+            ocRemainder.forEach(oc => {
+                const ocDesc = norm(oc.description);
+                if (ocDesc) {
+                    const i = nfItems.findIndex((nf, idx) => {
+                        if (used.has(idx)) return false;
+                        const nfDesc = norm(nf.description);
+                        return nfDesc.includes(ocDesc) || ocDesc.includes(nfDesc);
+                    });
+                    if (i !== -1) { used.add(i); pairs.push({ oc, nf: nfItems[i], nfIdx: i }); return; }
+                }
+                ocStillRemainder.push(oc);
+            });
+
+            // OC sem par na NF
+            ocStillRemainder.forEach(oc => pairs.push({ oc, nf: null, nfIdx: -1 }));
+
+            // NF sem par na OC
+            nfItems.forEach((nf, i) => { if (!used.has(i)) pairs.push({ oc: null, nf, nfIdx: i }); });
+
+            return pairs;
         }
 
         function _renderComparisonModal() {
             const order  = _cmpOrder;
             const nfData = _cmpNfData;
-            const result = validateOrderWithNfXml(order, nfData);
+            // NFs já salvas para esta OC (excluídas da validação de pendentes)
+            const prevNfs = complianceItems.filter(ci => ci.ref === order.id && ci.nfData);
+            const result = validateOrderWithNfXml(order, nfData, prevNfs);
             const nfId   = nfData.nfNumber.startsWith('NF') ? nfData.nfNumber : `NF-${nfData.nfNumber}`;
 
             document.getElementById('cmp-oc-id').textContent = order.id;
             document.getElementById('cmp-nf-id').textContent = nfId;
+
+            // Contador de NFs já recebidas para esta OC
+            const countEl = document.getElementById('cmp-nf-count');
+            if (countEl) {
+                countEl.textContent = prevNfs.length > 0
+                    ? `${prevNfs.length} NF(s) já recebida(s) para esta OC`
+                    : 'Primeira NF desta OC';
+            }
 
             const scoreEl = document.getElementById('cmp-score');
             scoreEl.textContent = `${result.score}%`;
@@ -2960,38 +3093,50 @@
             document.getElementById('cmp-nf-ipi').textContent      = formatMoney(nfData.totalIpi);
             document.getElementById('cmp-nf-total').textContent    = formatMoney(nfData.totalValue);
 
-            // Tabela comparativa
+            // Tabela comparativa com pareamento inteligente
             const ocItems = getOrderItemsForValidation(order);
             const nfItems = nfData.items || [];
-            const rows    = Math.max(ocItems.length, nfItems.length);
+            // Marca SKUs/descs já recebidos em NFs anteriores
+            const prevReceivedSkus  = new Set(prevNfs.flatMap(ci => (ci.nfData?.items || []).map(i => String(i.code || '').toLowerCase().trim())));
+            const prevReceivedDescs = new Set(prevNfs.flatMap(ci => (ci.nfData?.items || []).map(i => normalizeValidationText(i.description))));
+            const pairs   = _buildComparisonPairs(ocItems, nfItems);
             const tbody   = document.getElementById('cmp-items-body');
 
-            tbody.innerHTML = Array.from({ length: rows }, (_, idx) => {
-                const oc = ocItems[idx]  || null;
-                const nf = nfItems[idx]  || null;
-
-                // Verifica match de código
+            tbody.innerHTML = pairs.map(({ oc, nf, nfIdx }, rowIdx) => {
                 const ocSku  = String(oc?.sku  || '').toLowerCase().trim();
                 const nfCode = String(nf?.code || '').toLowerCase().trim();
                 const codeOk = ocSku && nfCode && (ocSku === nfCode);
-                const rowBg  = !oc || !nf ? 'bg-amber-50' : (codeOk ? '' : 'bg-rose-50/40');
+
+                // Tipo de linha: extra NF (vermelho), OC pendente (âmbar), OC já recebida (cinza-esverdeado), mismatch (rosa)
+                const ocPrevReceived = oc && (
+                    (ocSku  && prevReceivedSkus.has(ocSku)) ||
+                    (normalizeValidationText(oc.description) && prevReceivedDescs.has(normalizeValidationText(oc.description)))
+                );
+                let rowBg = '';
+                let rowTitle = '';
+                if (!oc && nf)        { rowBg = 'bg-red-50';     rowTitle = 'Item da NF não consta na OC'; }
+                else if (oc && !nf)   { rowBg = ocPrevReceived ? 'bg-emerald-50/60' : 'bg-amber-50'; rowTitle = ocPrevReceived ? 'Já recebido em NF anterior' : 'Item da OC não nesta NF'; }
+                else if (!codeOk)     { rowBg = 'bg-rose-50/40'; }
 
                 const fmtQty = v => Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
 
-                return `<tr class="${rowBg}">
-                    <td class="p-2 text-center text-slate-400 font-mono">${idx + 1}</td>
-                    <!-- OC -->
-                    <td class="p-2 text-slate-700">${escapeHtml(oc?.description || '--')}</td>
-                    <td class="p-2 font-mono text-indigo-700">${escapeHtml(oc?.sku || '--')}</td>
+                let indicator = '';
+                if (!oc && nf)         indicator = '<span class="text-red-500 font-bold" title="Não está na OC">⊕</span>';
+                else if (oc && !nf)    indicator = ocPrevReceived ? '<span class="text-emerald-500" title="Já recebido">✓</span>' : '<span class="text-amber-500" title="Pendente nesta NF">⚠</span>';
+                else if (codeOk)       indicator = '<span class="text-emerald-500" title="Código OK">✓</span>';
+                else                   indicator = '<span class="text-rose-500" title="Código divergente">✗</span>';
+
+                const nfBadge = !oc && nf ? '<span class="ml-1 text-[9px] font-bold text-red-600 bg-red-100 px-1 rounded">EXTRA</span>' : '';
+
+                return `<tr class="${rowBg}" title="${rowTitle}">
+                    <td class="p-2 text-center text-slate-400 font-mono">${rowIdx + 1}</td>
+                    <td class="p-2 text-slate-700 ${ocPrevReceived && !nf ? 'line-through text-slate-400' : ''}">${escapeHtml(oc?.description || '--')}</td>
+                    <td class="p-2 font-mono text-indigo-700 ${ocPrevReceived && !nf ? 'line-through text-slate-400' : ''}">${escapeHtml(oc?.sku || '--')}</td>
                     <td class="p-2 text-right tabular-nums">${oc ? fmtQty(oc.qty) : '--'}</td>
                     <td class="p-2 text-right tabular-nums">${oc ? formatMoney(oc.price) : '--'}</td>
-                    <!-- Indicador de match -->
-                    <td class="p-2 text-center text-lg leading-none">${ !oc || !nf ? '<span title="Sem par">⚠</span>' : codeOk ? '<span class="text-emerald-500" title="Código OK">✓</span>' : '<span class="text-rose-500" title="Código divergente">✗</span>' }</td>
-                    <!-- NF -->
-                    <td class="p-2 text-slate-700">${escapeHtml(nf?.description || '--')}</td>
-                    <td class="p-2">
-                        ${ nf ? `<input type="text" class="nf-code-input w-full border ${ codeOk ? 'border-emerald-300 bg-emerald-50' : 'border-rose-300 bg-rose-50' } rounded px-1.5 py-1 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-indigo-400" value="${escapeHtml(nf.code || '')}" data-nf-idx="${idx}">` : '--' }
-                    </td>
+                    <td class="p-2 text-center text-lg leading-none">${indicator}</td>
+                    <td class="p-2 text-slate-700">${escapeHtml(nf?.description || '--')}${nfBadge}</td>
+                    <td class="p-2">${nf ? `<input type="text" class="nf-code-input w-full border ${codeOk ? 'border-emerald-300 bg-emerald-50' : (!oc ? 'border-red-300 bg-red-50' : 'border-rose-300 bg-rose-50')} rounded px-1.5 py-1 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-indigo-400" value="${escapeHtml(nf.code || '')}" data-nf-idx="${nfIdx}">` : '--'}</td>
                     <td class="p-2 text-right tabular-nums">${nf ? fmtQty(nf.qty) : '--'}</td>
                     <td class="p-2 text-right tabular-nums">${nf ? formatMoney(nf.unitValue) : '--'}</td>
                 </tr>`;
@@ -3007,28 +3152,38 @@
             _collectNfCodesFromModal();
             const order  = _cmpOrder;
             const nfData = _cmpNfData;
-            const result = validateOrderWithNfXml(order, nfData);
-            const nfId   = nfData.nfNumber.startsWith('NF') ? nfData.nfNumber : `NF-${nfData.nfNumber}`;
             const ocId   = order.id;
+            const nfId   = nfData.nfNumber.startsWith('NF') ? nfData.nfNumber : `NF-${nfData.nfNumber}`;
 
-            const existingCompliance = complianceItems.find(item => item.ref === ocId);
+            // Bloqueio: NF duplicada para esta OC
+            const duplicate = complianceItems.find(ci => ci.ref === ocId && ci.id === nfId);
+            if (duplicate) {
+                showAlert(`A nota ${nfId} já foi registrada para a OC ${ocId}. Importe um XML diferente ou cancele.`, 'NF Duplicada — Bloqueado');
+                return;
+            }
+
+            const isPartial = document.getElementById('cmp-is-partial')?.checked || false;
+            // NFs já salvas (exclui da validação o que já foi recebido)
+            const prevNfs = complianceItems.filter(ci => ci.ref === ocId && ci.nfData);
+            const result    = validateOrderWithNfXml(order, nfData, prevNfs);
+
+            // Chave composta: permite múltiplas NFs por OC
+            const docKey  = `${ocId}__${nfId}`.replace(/[^a-zA-Z0-9_\-]/g, '_');
+
             const payload = {
-                id:           nfId,
-                ref:          ocId,
-                match:        result.score,
-                status:       result.score === 100 ? 'Validado' : 'Divergente',
-                divergence:   result.divergences.join(' '),
-                divergences:  result.divergences,
-                nfData
+                id:          nfId,
+                ref:         ocId,
+                match:       result.score,
+                status:      result.score === 100 ? 'Validado' : (isPartial ? 'Parcial' : 'Divergente'),
+                isPartial,
+                divergence:  result.divergences.join(' '),
+                divergences: result.divergences,
+                nfData,
+                docKey
             };
 
-            if (existingCompliance) {
-                Object.assign(existingCompliance, payload);
-                dbSet('complianceItems', ocId, existingCompliance);
-            } else {
-                complianceItems.unshift(payload);
-                dbSet('complianceItems', ocId, payload);
-            }
+            complianceItems.unshift(payload);
+            dbSet('complianceItems', docKey, payload);
 
             closeModal('modal-xml-compare');
 
@@ -3036,7 +3191,52 @@
                 renderCompliance();
             }
 
-            showAlert(`OC ${ocId} × ${nfId} — Score ${result.score}%. Resultado salvo.`, 'Conferência Salva');
+            // Atualiza barra de recebimento na aba de OCs
+            if (document.getElementById('tab-orders')?.classList.contains('active')) {
+                renderOrders();
+            }
+
+            // Verifica se o recebimento está completo
+            const prog = calcReceivingProgress(ocId);
+            if (prog.pct === 100 && order.status !== 'Concluído') {
+                // Validação cumulativa de quantidades e valores
+                const cumulDivs = validateCumulativeReceipt(order);
+
+                // Conclui a OC (com ou sem divergência cumulativa)
+                order.status = 'Concluído';
+                dbSet('orders', ocId, order);
+
+                // Conclui a SC vinculada
+                if (order.scId) {
+                    const sc = purchaseRequests.find(s => s.id === order.scId);
+                    if (sc && sc.status !== 'Concluído') {
+                        sc.status = 'Concluído';
+                        dbSet('purchaseRequests', sc.id, sc);
+                    }
+                }
+
+                if (cumulDivs.length) {
+                    // Atualiza o compliance item atual com divergências cumulativas
+                    payload.divergences = [...(payload.divergences || []), ...cumulDivs];
+                    payload.divergence  = payload.divergences.join(' ');
+                    payload.status      = 'Divergente';
+                    payload.match       = Math.max(0, payload.match - Math.round((cumulDivs.length / (cumulDivs.length + 1)) * 30));
+                    dbSet('complianceItems', docKey, payload);
+                    showAlert(`Recebimento 100% concluído, mas com divergências cumulativas:\n${cumulDivs.join('\n')}\nOC ${ocId} marcada como Concluída.`, 'Divergência Cumulativa');
+                } else {
+                    showAlert(`Recebimento completo! OC ${ocId} marcada como Concluída.${order.scId ? ` SC ${order.scId} também concluída.` : ''}`, 'Recebimento 100%');
+                }
+            } else if (prog.pct > 0 && prog.pct < 100 && order.status === 'Aprovado') {
+                // Marca como Recebimento Parcial
+                order.status = 'Recebimento Parcial';
+                dbSet('orders', ocId, order);
+                const partialLabel = isPartial ? ' [Parcial]' : '';
+                showAlert(`OC ${ocId} × ${nfId}${partialLabel} — Score ${result.score}%. Recebimento ${prog.pct}%.`, 'Conferência Salva');
+            } else {
+                const partialLabel = isPartial ? ' [Parcial]' : '';
+                showAlert(`OC ${ocId} × ${nfId}${partialLabel} — Score ${result.score}%. Resultado salvo.`, 'Conferência Salva');
+            }
+
             _cmpOrder  = null;
             _cmpNfData = null;
         }
@@ -3081,30 +3281,151 @@
 
         function getOrderStatusStyle(status) {
             if (status === 'Concluído') return 'bg-emerald-100 text-emerald-700';
+            if (status === 'Recebimento Parcial') return 'bg-amber-100 text-amber-700';
             if (status === 'Aprovado') return 'bg-blue-100 text-blue-700';
             if (status === 'Em Aprovação') return 'bg-amber-100 text-amber-700';
             return 'bg-slate-100 text-slate-700';
         }
 
+        // Calcula progresso de recebimento de uma OC com base nos complianceItems
+        // Valida recebimento cumulativo ao atingir 100% (somatório de todas as NFs parciais)
+        function validateCumulativeReceipt(order) {
+            const ocItems  = getOrderItemsForValidation(order);
+            const allNfs   = complianceItems.filter(ci => ci.ref === order.id && ci.nfData);
+            const norm     = v => String(v || '').toLowerCase().trim();
+            const divs     = [];
+
+            // Mapa de qtde recebida por SKU/código
+            const receivedQtyBySku = {};
+            let totalReceivedValue = 0;
+            allNfs.forEach(ci => {
+                totalReceivedValue += Number(ci.nfData.totalValue || 0);
+                ci.nfData.items.forEach(nfItem => {
+                    const key = norm(nfItem.code) || norm(nfItem.description);
+                    if (key) receivedQtyBySku[key] = (receivedQtyBySku[key] || 0) + Number(nfItem.qty || 0);
+                });
+            });
+
+            // Verifica excedentes por item
+            ocItems.forEach(oi => {
+                const key      = norm(oi.sku) || norm(oi.description);
+                const ordered  = Number(oi.qty || 1);
+                const received = receivedQtyBySku[key] || 0;
+                if (received > ordered + 0.001) {
+                    divs.push(`Excedente: ${oi.description || oi.sku} (pedido ${ordered}, recebido ${received}).`);
+                }
+            });
+
+            // Verifica valor total
+            const ocTotal   = Number(order.total || 0);
+            const valueDiff = totalReceivedValue - ocTotal;
+            if (Math.abs(valueDiff) > 0.02) {
+                const sign = valueDiff > 0 ? 'acima' : 'abaixo';
+                divs.push(`Valor total cumulativo ${sign} do pedido (OC ${formatMoney(ocTotal)} vs NFs ${formatMoney(totalReceivedValue)}, diff ${formatMoney(Math.abs(valueDiff))}).`);
+            }
+
+            return divs;
+        }
+
+        function calcReceivingProgress(orderId) {
+            const nfs = complianceItems.filter(ci => ci.ref === orderId);
+            if (!nfs.length) return { pct: 0, received: 0, total: 0, nfCount: 0, label: 'Aguardando XML' };
+
+            const order = orders.find(o => o.id === orderId);
+            const ocItems = order ? getOrderItemsForValidation(order) : [];
+
+            // Qtde total pedida na OC
+            const totalQty = ocItems.reduce((s, i) => s + Number(i.qty || 1), 0) || 1;
+
+            // Qtde já recebida somando todas as NFs (por SKU ou por item match)
+            let receivedQty = 0;
+            const receivedSkus = new Set();
+            nfs.forEach(ci => {
+                if (!ci.nfData) return;
+                ci.nfData.items.forEach(nfItem => {
+                    receivedSkus.add(String(nfItem.code || '').toLowerCase().trim());
+                    receivedQty += Number(nfItem.qty || 0);
+                });
+            });
+
+            // Calcula % por SKU match ou por quantidade proporcional
+            let matchedItems = 0;
+            ocItems.forEach(oi => {
+                const sku = String(oi.sku || '').toLowerCase().trim();
+                if (sku && receivedSkus.has(sku)) matchedItems++;
+            });
+
+            const pctByItem = ocItems.length ? Math.round((matchedItems / ocItems.length) * 100) : 0;
+            const pctByQty  = Math.min(100, Math.round((receivedQty / totalQty) * 100));
+            // Usa o maior entre os dois métodos
+            const pct = Math.max(pctByItem, pctByQty);
+
+            return {
+                pct,
+                received: matchedItems,
+                total: ocItems.length,
+                nfCount: nfs.length,
+                label: pct === 100 ? 'Completo' : `${pct}% (${nfs.length} NF${nfs.length > 1 ? 's' : ''})`
+            };
+        }
+
         function renderCompliance() {
             const tbody = document.getElementById('compliance-table-body');
-            tbody.innerHTML = complianceItems.map((item, index) => `
-                <tr class="hover:bg-slate-50">
-                    <td class="p-4 text-xs font-bold">${item.id}</td>
+            tbody.innerHTML = complianceItems.map((item, index) => {
+                const isPartial = !!item.isPartial;
+                const scoreColor = item.match === 100 ? 'text-emerald-600' : (isPartial ? 'text-amber-600' : 'text-rose-600');
+                const divColor   = item.match === 100 ? 'text-emerald-700' : (isPartial ? 'text-amber-700' : 'text-rose-600');
+                const partialBadge = isPartial
+                    ? `<span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200">PARCIAL</span>`
+                    : '';
+                return `<tr class="hover:bg-slate-50">
+                    <td class="p-4 text-xs font-bold">${item.id}${partialBadge}</td>
                     <td class="p-4 text-xs text-blue-600">${item.ref}</td>
-                    <td class="p-4 text-center"><span class="text-emerald-600 font-bold">${item.match}%</span></td>
-                    <td class="p-4 text-[11px] ${item.match === 100 ? 'text-emerald-700' : 'text-rose-600'}">
-                        ${item.divergence || (item.match === 100 ? 'Sem divergências encontradas.' : 'Divergência detectada, abra a NF para detalhes.')}
+                    <td class="p-4 text-center"><span class="${scoreColor} font-bold">${item.match}%</span></td>
+                    <td class="p-4 text-[11px] ${divColor}">
+                        ${item.divergence || (item.match === 100 ? 'Sem divergências encontradas.' : (isPartial ? 'Entrega parcial — parte dos itens não consta nesta NF.' : 'Divergência detectada, abra a NF para detalhes.'))}
                     </td>
                     <td class="p-4 text-center actions-cell">
                         <button onclick="openNfDetails(${index})" class="btn-act btn-act-view">
                             <i data-lucide="file-text" class="w-3 h-3"></i> Ver NF
                         </button>
+                        <button onclick="deleteComplianceItem(${index})" class="btn-act btn-act-delete" title="Remover lançamento">
+                            <i data-lucide="trash-2" class="w-3 h-3"></i>
+                        </button>
                     </td>
-                </tr>`).join('');
+                </tr>`;
+            }).join('');
 
             updateCriticalDivergenceCard();
             lucide.createIcons();
+        }
+
+        function deleteComplianceItem(index) {
+            const item = complianceItems[index];
+            if (!item) return;
+            askConfirmation(
+                'Remover Lançamento',
+                `Deseja remover o lançamento ${item.id} (ref. ${item.ref})? Esta ação não pode ser desfeita.`,
+                () => {
+                    const docKey  = item.docKey || item.ref;
+                    const ocId    = item.ref;
+                    complianceItems.splice(index, 1);
+                    dbDelete('complianceItems', docKey);
+
+                    // Recalcula status da OC após remoção
+                    const order = orders.find(o => o.id === ocId);
+                    if (order && order.status === 'Recebimento Parcial') {
+                        const prog = calcReceivingProgress(ocId);
+                        if (prog.pct === 0) {
+                            order.status = 'Aprovado';
+                            dbSet('orders', ocId, order);
+                        }
+                    }
+
+                    renderCompliance();
+                    if (document.getElementById('tab-orders')?.classList.contains('active')) renderOrders();
+                }
+            );
         }
 
         function formatMoney(value) {
@@ -3135,7 +3456,9 @@
             const actionEl = document.getElementById('critical-divergence-action');
             if (!titleEl || !textEl || !actionEl) return;
 
-            const index = complianceItems.findIndex(item => Number(item.match || 0) < 100 && !item.authorizedProceed);
+            const index = complianceItems.findIndex(
+                item => Number(item.match || 0) < 100 && !item.authorizedProceed && !item.isPartial
+            );
             currentCriticalComplianceIndex = index;
 
             if (index === -1) {
@@ -3236,7 +3559,8 @@
                     item.authorizedProceed = true;
                     item.status = 'Autorizado com Divergência';
                     item.divergence = item.divergence || 'Divergência autorizada para prosseguir.';
-                    dbSet('complianceItems', item.ref, item);
+                    const saveKey = item.docKey || item.ref;
+                    dbSet('complianceItems', saveKey, item);
 
                     closeModal('modal-nf-details');
                     renderCompliance();
