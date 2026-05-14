@@ -3809,8 +3809,8 @@
                 const scoreDisplay = isSemOc ? '—' : `${item.match}%`;
                 const divText = item.divergence || (item.match === 100 ? 'Sem divergências encontradas.' : (isPartial ? 'Entrega parcial — parte dos itens não consta nesta NF.' : 'Divergência detectada, abra a NF para detalhes.'));
                 return `<tr class="hover:bg-slate-50 ${isSemOc ? 'bg-violet-50/30' : ''}">
-                    <td class="p-4 text-xs font-bold">${item.id}${partialBadge}${semOcBadge}</td>
-                    <td class="p-4 text-xs">${refDisplay}</td>
+                    <td class="p-4 text-xs font-bold whitespace-nowrap">${item.id}${partialBadge}${semOcBadge}</td>
+                    <td class="p-4 text-xs whitespace-nowrap">${refDisplay}</td>
                     <td class="p-4 text-center"><span class="${scoreColor} font-bold">${scoreDisplay}</span></td>
                     <td class="p-4 text-[11px] ${divColor}">${divText}</td>
                     <td class="p-4 text-center actions-cell">
